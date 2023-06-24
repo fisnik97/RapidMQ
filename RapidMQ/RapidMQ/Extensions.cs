@@ -8,9 +8,7 @@ public static class Extensions
 {
     public static string PayloadToString(this BasicDeliverEventArgs args)
     {
-        var body = Encoding.UTF8.GetString(args.Body.Span);
-        var document = JsonDocument.Parse(body);
-        var bodyPayload = document.RootElement.ToString();
-        return $"Exchange: {args.Exchange}, RoutingKey: {args.RoutingKey}, Body: {bodyPayload}";
+        var document = JsonDocument.Parse(Encoding.UTF8.GetString(args.Body.Span));
+        return $"Exchange: {args.Exchange}, RoutingKey: {args.RoutingKey}, Body: {document.RootElement.ToString()}";
     }
 }
