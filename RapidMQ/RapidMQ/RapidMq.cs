@@ -6,27 +6,49 @@ namespace RapidMQ;
 public class RapidMq
 {
     private readonly string _connectionString;
-    private readonly IModel _channel;
-    private readonly EventingBasicConsumer _consumer;
     private readonly IConnection _connection;
-    private readonly ChannelConfig _channelConfig;
+    private readonly ChannelManager _channelManager;
+    private readonly HashSet<QueueBinding> _queueBindings = new();
 
-    public RapidMq(string connectionString, ChannelConfig channelConfig)
+    private readonly IModel _channel;
+
+    public RapidMq(string connectionString, List<ChannelConfig> channelConfig)
     {
         _connectionString = connectionString;
-        _channelConfig = channelConfig;
         _connection = Connect();
+        _channelManager = new ChannelManager(_connection, channelConfig);
         _channel = CreateChannel();
-        _consumer = new EventingBasicConsumer(_channel);
+    }
+
+    public QueueBinding CreateBinding(QueueModel queue, string exchangeName, string routingKey)
+    {
+        DeclareQueue(queue.QueueName, queue.Durable, queue.AutoDelete);
+        _channel.QueueBind(queue.QueueName, exchangeName, routingKey);
+        var binding = new QueueBinding(queue.QueueName, routingKey, exchangeName);
+        _queueBindings.Add(binding);
+        return binding;
+    }
+
+    public void Listen(string channelName, QueueBinding queueBinding, Action action)
+    {
+        var exists = _queueBindings.TryGetValue(queueBinding, out var createBinding);
+        if (!exists)
+        {
+            createBinding = CreateBinding(QueueModel.DefaultQueue(queueBinding.QueueName), queueBinding.ExchangeName,
+                queueBinding.RoutingKey);
+            _queueBindings.Add(createBinding);
+        }
+
+        var rapidChannel = _channelManager.RegisterEventHandler(channelName, queueBinding.RoutingKey, action);
+        rapidChannel.ConsumeFromQueue(queueBinding.QueueName);
     }
 
     private IConnection Connect()
     {
-        var connManager = new ConnectionFactory
+        return new ConnectionFactory
         {
             Uri = new Uri(_connectionString)
-        };
-        return connManager.CreateConnection();
+        }.CreateConnection();
     }
 
     private IModel CreateChannel()
@@ -36,36 +58,20 @@ public class RapidMq
         return channel;
     }
 
-    public void PublishEvent(string exchange, string routingKey, object payload)
-    {
-        _channel.BasicPublish(exchange, routingKey, true, null);
-    }
-
-    public void StartListening()
-    {
-        _consumer.Received += async (sender, args) =>
-        {
-            await Task.Delay(10);
-            Console.WriteLine("An event came");
-            var payload = args.PayloadToString();
-            Console.WriteLine(payload);
-            _channel.BasicAck(args.DeliveryTag, false);
-        };
-    }
-
     public void DeclareExchange(string exchangeName, string exchangeType)
     {
         _channel.ExchangeDeclare(exchangeName, exchangeType, true);
     }
 
-    public void DeclareQueue(string queueName, bool durable = true, bool autoDelete = false)
+    private void DeclareQueue(string queueName, bool durable = true, bool autoDelete = false)
     {
         _channel.QueueDeclare(queueName, durable, false, autoDelete);
     }
 
-    public void BindQueue(string queueName, string routingKey, string exchange)
+
+    private void BindQueue(string queueName, string routingKey, string exchange)
     {
         _channel.QueueBind(queueName, exchange, routingKey);
-        _channel.BasicConsume(queueName, false, consumer: _consumer);
+        //_channel.BasicConsume(queueName, false, consumer: _consumer);
     }
 }

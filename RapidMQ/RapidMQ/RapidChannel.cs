@@ -1,31 +1,50 @@
 ﻿using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 
 namespace RapidMQ;
 
 public class RapidChannel
 {
-    private readonly IModel _channel;
-    private readonly IConnection _connection;
+    public string ChannelName { get; set; }
+    public IModel Channel { get; set; }
+    public EventingBasicConsumer Consumer { get; set; }
+    private readonly Dictionary<string, Action> _eventBindings = new();
 
-    public RapidChannel(IConnection connection, string channelName, ushort prefetchCount, bool isGlobal)
+    public RapidChannel(string channelName, IModel channel, EventingBasicConsumer consumer)
     {
-        _connection = connection;
         ChannelName = channelName;
-        PrefetchCount = prefetchCount;
-        IsGlobal = isGlobal;
-        _channel = CreateMChannel();
+        Channel = channel;
+        Consumer = consumer;
+        StartListening();
     }
 
-    private ushort PrefetchCount { get; init; }
-    private bool IsGlobal { get; init; }
-    public string? ChannelName { get; init; }
-
-    private IModel CreateMChannel()
+    public void AddEventBinding(string routingKey, Action handler)
     {
-        var model = _connection.CreateModel();
-        model.BasicQos(0, PrefetchCount, IsGlobal);
-        return model;
+        _eventBindings.Add(routingKey, handler);
     }
 
-    public static IModel ToIModel(RapidChannel self) => self._channel;
+    public void ConsumeFromQueue(string queueName)
+    {
+        Channel.BasicConsume(queueName, false, consumer: Consumer);
+    }
+
+    private void StartListening()
+    {
+        Consumer.Received += (sender, args) =>
+        {
+            var routingKey = args.RoutingKey;
+            try
+            {
+                var handler = _eventBindings.TryGetValue(routingKey, out var actionHandler);
+
+                actionHandler?.Invoke();
+
+                Channel.BasicAck(args.DeliveryTag, true);
+            }
+            catch (Exception e)
+            {
+                Channel.BasicNack(args.DeliveryTag, true, false);
+            }
+        };
+    }
 }
