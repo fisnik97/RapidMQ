@@ -24,7 +24,7 @@ public class RapidChannel
         if (_eventBindings.ContainsKey(routingKey))
             throw new InvalidOperationException(
                 $"There is a handler already defined for routing key: ${routingKey} in channel: {ChannelName}");
-        
+
         _eventBindings.Add(routingKey, handler);
     }
 
@@ -42,9 +42,8 @@ public class RapidChannel
             var routingKey = args.RoutingKey;
             try
             {
-                var handler = _eventBindings.TryGetValue(routingKey, out var actionHandler);
-
-                actionHandler?.Invoke();
+                if (_eventBindings.TryGetValue(routingKey, out var actionHandler))
+                    actionHandler.Invoke();
 
                 Channel.BasicAck(args.DeliveryTag, true);
             }

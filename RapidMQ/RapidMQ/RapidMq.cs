@@ -1,4 +1,7 @@
-﻿using RabbitMQ.Client;
+﻿using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RapidMQ.Models;
 
@@ -86,5 +89,12 @@ public class RapidMq
     private void DeclareQueue(string queueName, bool durable = true, bool autoDelete = false)
     {
         _setupChannel.QueueDeclare(queueName, durable, false, autoDelete);
+    }
+
+    public void PublishMessage<T>(string exchangeName, string routingKey, T message) where T : IMqMessage
+    {
+        using var channel = _connection.CreateModel();
+        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
+        channel.BasicPublish(exchangeName, routingKey, body: body);
     }
 }
