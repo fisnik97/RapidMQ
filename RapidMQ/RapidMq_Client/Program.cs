@@ -1,48 +1,37 @@
 ﻿using RabbitMQ.Client;
 using RapidMQ;
+using RapidMQ.Models;
 
 const string connString = "amqp://localhost";
 
-var rapidMq = new RapidMq(connString, new List<ChannelConfig>()
-{
-    new("MetricsChannel", 1, true),
-    new("DeviceChannel", 10, false),
-});
+var rapidMq = new RapidMq(new Uri(connString));
+
 
 const string queue = "alert.queue";
+const string notificationsQueue = "alert.notifications.queue";
 const string exchange = "IoT";
-const string routingKey = "device.iot.alert";
+const string routingKey = "device.iot.alert", notificationsRoutingKey = "device.notifications.received";
 
-var binding = rapidMq.CreateBinding(
+rapidMq.DeclareExchange(exchange, ExchangeType.Topic);
+
+
+var slowChannel = rapidMq.CreateChannel(new ChannelConfig("MySlowChannel", 5, true));
+
+var alertQueueBinding = rapidMq.CreateQueueBinding(
     new QueueModel(queue, true, false),
     exchange,
     routingKey
 );
 
-rapidMq.Listen("MetricsChannel", binding,
-    () =>
-    {
-        Console.WriteLine($"this is the handler of the event: {routingKey}");
-    });
+var iotNotificationsBinding = rapidMq.CreateQueueBinding(
+    notificationsQueue,
+    exchange,
+    notificationsRoutingKey
+);
 
-rapidMq.Listen("DeviceChannel",
-    rapidMq.CreateBinding(QueueModel.DefaultQueue("SecondIoTQueue"), "IoT", "device.iot.message"),
-    () =>
-    {
-        Console.WriteLine(""); 
-        
-    });
+slowChannel.Listen(alertQueueBinding, () => { Console.WriteLine("Hello from event!"); });
 
-/*
-const string queueName = "deviceAlertQueue", exchangeName = "IoT", routingKey = "device.iot.alert";
+slowChannel.Listen(iotNotificationsBinding, () => { Console.WriteLine("Hello from IoT notifications binding!"); });
 
-rapidMq.BindEventHandlers();
-
-rapidMq.DeclareExchange(exchangeName, ExchangeType.Topic);
-
-rapidMq.DeclareQueue(queueName, true, false);
-
-rapidMq.BindQueue(queueName, routingKey, exchangeName);
-*/
 
 Console.ReadLine();
