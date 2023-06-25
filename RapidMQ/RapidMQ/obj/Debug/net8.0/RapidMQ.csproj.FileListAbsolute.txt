@@ -1,0 +1,12 @@
+C:\Users\FisnikMaloku\Desktop\RapidMQ\RapidMQ\RapidMQ\bin\Debug\net8.0\RapidMQ.deps.json
+C:\Users\FisnikMaloku\Desktop\RapidMQ\RapidMQ\RapidMQ\bin\Debug\net8.0\RapidMQ.dll
+C:\Users\FisnikMaloku\Desktop\RapidMQ\RapidMQ\RapidMQ\bin\Debug\net8.0\RapidMQ.pdb
+C:\Users\FisnikMaloku\Desktop\RapidMQ\RapidMQ\RapidMQ\obj\Debug\net8.0\RapidMQ.csproj.AssemblyReference.cache
+C:\Users\FisnikMaloku\Desktop\RapidMQ\RapidMQ\RapidMQ\obj\Debug\net8.0\RapidMQ.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\FisnikMaloku\Desktop\RapidMQ\RapidMQ\RapidMQ\obj\Debug\net8.0\RapidMQ.AssemblyInfoInputs.cache
+C:\Users\FisnikMaloku\Desktop\RapidMQ\RapidMQ\RapidMQ\obj\Debug\net8.0\RapidMQ.AssemblyInfo.cs
+C:\Users\FisnikMaloku\Desktop\RapidMQ\RapidMQ\RapidMQ\obj\Debug\net8.0\RapidMQ.csproj.CoreCompileInputs.cache
+C:\Users\FisnikMaloku\Desktop\RapidMQ\RapidMQ\RapidMQ\obj\Debug\net8.0\RapidMQ.dll
+C:\Users\FisnikMaloku\Desktop\RapidMQ\RapidMQ\RapidMQ\obj\Debug\net8.0\refint\RapidMQ.dll
+C:\Users\FisnikMaloku\Desktop\RapidMQ\RapidMQ\RapidMQ\obj\Debug\net8.0\RapidMQ.pdb
+C:\Users\FisnikMaloku\Desktop\RapidMQ\RapidMQ\RapidMQ\obj\Debug\net8.0\ref\RapidMQ.dll

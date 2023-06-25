@@ -1,53 +1,73 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RapidMQ.Models;
 
 namespace RapidMQ;
 
 public class RapidMq
 {
-    private readonly string _connectionString;
+    private readonly Uri _connectionString;
     private readonly IConnection _connection;
-    private readonly ChannelManager _channelManager;
     private readonly HashSet<QueueBinding> _queueBindings = new();
+    private readonly IModel _setupChannel;
 
-    private readonly IModel _channel;
-
-    public RapidMq(string connectionString, List<ChannelConfig> channelConfig)
+    public RapidMq(Uri connectionString)
     {
         _connectionString = connectionString;
         _connection = Connect();
-        _channelManager = new ChannelManager(_connection, channelConfig);
-        _channel = CreateChannel();
+        _setupChannel = CreateChannel();
     }
 
-    public QueueBinding CreateBinding(QueueModel queue, string exchangeName, string routingKey)
+    public RapidChannel CreateChannel(ChannelConfig channelConfig)
     {
+        var channel = _connection.CreateModel();
+        channel.BasicQos(0, channelConfig.PrefetchCount, channelConfig.IsGlobal);
+
+        var consumer = new EventingBasicConsumer(channel);
+        var rapidChannel = new RapidChannel(channelConfig.Id, channel, consumer);
+        return rapidChannel;
+    }
+
+    public QueueBinding CreateQueueBinding(QueueModel queue, string exchangeName, string routingKey)
+    {
+        var existingBinding = _queueBindings.FirstOrDefault(x =>
+            x.QueueName == queue.QueueName && x.RoutingKey == routingKey && x.ExchangeName == exchangeName);
+
+        if (existingBinding != null)
+            return existingBinding;
+
         DeclareQueue(queue.QueueName, queue.Durable, queue.AutoDelete);
-        _channel.QueueBind(queue.QueueName, exchangeName, routingKey);
+        _setupChannel.QueueBind(queue.QueueName, exchangeName, routingKey);
+
         var binding = new QueueBinding(queue.QueueName, routingKey, exchangeName);
         _queueBindings.Add(binding);
+
         return binding;
     }
 
-    public void Listen(string channelName, QueueBinding queueBinding, Action action)
+    public QueueBinding CreateQueueBinding(string queue, string exchangeName, string routingKey)
     {
-        var exists = _queueBindings.TryGetValue(queueBinding, out var createBinding);
-        if (!exists)
-        {
-            createBinding = CreateBinding(QueueModel.DefaultQueue(queueBinding.QueueName), queueBinding.ExchangeName,
-                queueBinding.RoutingKey);
-            _queueBindings.Add(createBinding);
-        }
+        var existingBinding = _queueBindings.FirstOrDefault(x =>
+            x.QueueName == queue && x.RoutingKey == routingKey && x.ExchangeName == exchangeName);
 
-        var rapidChannel = _channelManager.RegisterEventHandler(channelName, queueBinding.RoutingKey, action);
-        rapidChannel.ConsumeFromQueue(queueBinding.QueueName);
+        if (existingBinding != null)
+            return existingBinding;
+
+        var defaultQueue = QueueModel.DefaultQueue(queue);
+        DeclareQueue(defaultQueue.QueueName, defaultQueue.Durable, defaultQueue.AutoDelete);
+        _setupChannel.QueueBind(queue, exchangeName, routingKey);
+
+        var binding = new QueueBinding(queue, routingKey, exchangeName);
+        _queueBindings.Add(binding);
+
+        return binding;
     }
 
     private IConnection Connect()
     {
         return new ConnectionFactory
         {
-            Uri = new Uri(_connectionString)
+            Uri = _connectionString
         }.CreateConnection();
     }
 
@@ -60,18 +80,11 @@ public class RapidMq
 
     public void DeclareExchange(string exchangeName, string exchangeType)
     {
-        _channel.ExchangeDeclare(exchangeName, exchangeType, true);
+        _setupChannel.ExchangeDeclare(exchangeName, exchangeType, true);
     }
 
     private void DeclareQueue(string queueName, bool durable = true, bool autoDelete = false)
     {
-        _channel.QueueDeclare(queueName, durable, false, autoDelete);
-    }
-
-
-    private void BindQueue(string queueName, string routingKey, string exchange)
-    {
-        _channel.QueueBind(queueName, exchange, routingKey);
-        //_channel.BasicConsume(queueName, false, consumer: _consumer);
+        _setupChannel.QueueDeclare(queueName, durable, false, autoDelete);
     }
 }
