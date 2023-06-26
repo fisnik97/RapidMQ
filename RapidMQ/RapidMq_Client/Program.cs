@@ -30,15 +30,9 @@ var iotNotificationsBinding = rapidMq.CreateQueueBinding(
     notificationsRoutingKey
 );
 
-slowChannel.Listen(alertQueueBinding, () =>
-{
-    Console.WriteLine("Hello IOT Alert message from event!");
-});
+slowChannel.Listen(alertQueueBinding, new AlertNotifiedEventHandler()); // you can inject these type with DI too
 
-slowChannel.Listen(iotNotificationsBinding, () =>
-{
-    Console.WriteLine("Hello from IoT notifications binding!");
-});
+slowChannel.Listen(iotNotificationsBinding, new AlertNotifiedEventHandler());
 
 
 var alertMessage = new AlertNotifiedEvent(100, "2dsadasd", new object[]
