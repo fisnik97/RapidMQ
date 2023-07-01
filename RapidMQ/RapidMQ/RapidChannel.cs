@@ -1,4 +1,6 @@
-﻿using RabbitMQ.Client;
+﻿using System.Text;
+using System.Text.Json;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RapidMQ.Models;
 
@@ -9,9 +11,10 @@ public class RapidChannel
     private string ChannelName { get; }
     private IModel Channel { get; }
     private EventingBasicConsumer Consumer { get; }
-    private readonly Dictionary<string, Action> _eventBindings = new();
 
-    public RapidChannel(string channelName, IModel channel, EventingBasicConsumer consumer)
+    private readonly Dictionary<string, HandlerAndType> _handlers = new();
+
+    internal RapidChannel(string channelName, IModel channel, EventingBasicConsumer consumer)
     {
         ChannelName = channelName;
         Channel = channel;
@@ -19,31 +22,49 @@ public class RapidChannel
         DefineConsumerHandler();
     }
 
-    private void EnsureUniqueEventHandler(string routingKey, Action handler)
+    public void Listen<T>(QueueBinding queueBinding, IMqMessageHandler<T> handler) where T : IMqMessage
     {
-        if (_eventBindings.ContainsKey(routingKey))
-            throw new InvalidOperationException(
-                $"There is a handler already defined for routing key: ${routingKey} in channel: {ChannelName}");
+        var handlerAndType = new HandlerAndType
+        {
+            Handler = (msgContext) => handler.Handle(
+                new MessageContext<T>
+                {
+                    Message = (T)msgContext.Message,
+                    DeliveryTag = msgContext.DeliveryTag,
+                    RoutingKey = msgContext.RoutingKey,
+                    BasicProperties = msgContext.BasicProperties
+                }),
+            MessageType = typeof(T)
+        };
 
-        _eventBindings.Add(routingKey, handler);
-    }
-
-    public void Listen(QueueBinding queueBinding, Action action)
-    {
-        EnsureUniqueEventHandler(queueBinding.RoutingKey, action);
-
+        _handlers[queueBinding.RoutingKey] = handlerAndType;
         Channel.BasicConsume(queueBinding.QueueName, false, Consumer);
     }
 
+
     private void DefineConsumerHandler()
     {
-        Consumer.Received += (sender, args) =>
+        Consumer.Received += async (sender, args) =>
         {
             var routingKey = args.RoutingKey;
             try
             {
-                if (_eventBindings.TryGetValue(routingKey, out var actionHandler))
-                    actionHandler.Invoke();
+                if (!_handlers.TryGetValue(routingKey, out var handlerObj)) return;
+
+                if (handlerObj is null)
+                    throw new InvalidCastException("Handler cannot be cast to correct type");
+
+                var body = Encoding.UTF8.GetString(args.Body.ToArray());
+                var message = JsonSerializer.Deserialize(body, handlerObj.MessageType);
+
+                if (message != null)
+                    await handlerObj.Handler(new MessageContext<IMqMessage>
+                    {
+                        Message = (IMqMessage)message,
+                        DeliveryTag = args.DeliveryTag,
+                        RoutingKey = routingKey,
+                        BasicProperties = args.BasicProperties
+                    });
 
                 Channel.BasicAck(args.DeliveryTag, true);
             }

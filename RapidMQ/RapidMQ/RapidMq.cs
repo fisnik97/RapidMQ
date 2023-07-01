@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RapidMQ.Models;
