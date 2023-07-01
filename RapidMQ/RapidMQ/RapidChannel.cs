@@ -12,7 +12,7 @@ public class RapidChannel
     private IModel Channel { get; }
     private EventingBasicConsumer Consumer { get; }
 
-    private readonly Dictionary<string, Func<MessageContext<IMqMessage>, Task>> _handlers = new();
+    private readonly Dictionary<string, HandlerAndType> _handlers = new();
 
     internal RapidChannel(string channelName, IModel channel, EventingBasicConsumer consumer)
     {
@@ -24,39 +24,46 @@ public class RapidChannel
 
     public void Listen<T>(QueueBinding queueBinding, IMqMessageHandler<T> handler) where T : IMqMessage
     {
-        _handlers[queueBinding.RoutingKey] = context =>
+        var handlerAndType = new HandlerAndType
         {
-         
-
-            return handler.Handle(null);
+            Handler = (msgContext) => handler.Handle(
+                new MessageContext<T>
+                {
+                    Message = (T)msgContext.Message,
+                    DeliveryTag = msgContext.DeliveryTag,
+                    RoutingKey = msgContext.RoutingKey,
+                    BasicProperties = msgContext.BasicProperties
+                }),
+            MessageType = typeof(T)
         };
+
+        _handlers[queueBinding.RoutingKey] = handlerAndType;
         Channel.BasicConsume(queueBinding.QueueName, false, Consumer);
     }
 
+
     private void DefineConsumerHandler()
     {
-        Consumer.Received += async (_, args) =>
+        Consumer.Received += async (sender, args) =>
         {
             var routingKey = args.RoutingKey;
             try
             {
-                if (!_handlers.TryGetValue(routingKey, out var handlerObj))
-                {
-                    Channel.BasicAck(args.DeliveryTag, true);
-                    return;
-                };
+                if (!_handlers.TryGetValue(routingKey, out var handlerObj)) return;
 
                 if (handlerObj is null)
                     throw new InvalidCastException("Handler cannot be cast to correct type");
 
                 var body = Encoding.UTF8.GetString(args.Body.ToArray());
-                var message = JsonSerializer.Deserialize<IMqMessage>(body);
+                var message = JsonSerializer.Deserialize(body, handlerObj.MessageType);
 
                 if (message != null)
-                    await handlerObj(new MessageContext<IMqMessage>
+                    await handlerObj.Handler(new MessageContext<IMqMessage>
                     {
-                        Message = message,
-                        DeliveryTag = args.DeliveryTag
+                        Message = (IMqMessage)message,
+                        DeliveryTag = args.DeliveryTag,
+                        RoutingKey = routingKey,
+                        BasicProperties = args.BasicProperties
                     });
 
                 Channel.BasicAck(args.DeliveryTag, true);

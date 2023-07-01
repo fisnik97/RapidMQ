@@ -9,11 +9,17 @@ public class AlertNotifiedEventHandler : IMqMessageHandler<AlertNotifiedEvent>
     {
         
     }
-    public Task Handle(MessageContext<AlertNotifiedEvent> context)
+    public async Task Handle(MessageContext<AlertNotifiedEvent> context)
     {
         var body = context.Message;
+        var device = body.DeviceId;
+        if (device == default)
+        {
+            throw new ArgumentNullException(nameof(body), "Empty device not allowed");
+        }
         var routingKey = context.RoutingKey;
         var props = context.BasicProperties;
-        throw new NotImplementedException();
+
+        await Task.Delay(100);
     }
 }
