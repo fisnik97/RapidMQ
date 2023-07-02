@@ -1,7 +1,9 @@
 ﻿using System.Text;
 using System.Text.Json;
+using Polly;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RapidMQ.Internals;
 using RapidMQ.Models;
 
 namespace RapidMQ;
@@ -9,15 +11,21 @@ namespace RapidMQ;
 public class RapidMq
 {
     private readonly Uri _connectionString;
-    private readonly IConnection _connection;
+    private IConnection _connection = null!;
     private readonly HashSet<QueueBinding> _queueBindings = new();
-    private readonly IModel _setupChannel;
+    private IModel _setupChannel = null!;
 
-    public RapidMq(Uri connectionString)
+    public static async Task<RapidMq> CreateAsync(Uri uri)
+    {
+        var rapidMq = new RapidMq(uri);
+        await rapidMq.Connect();
+        await rapidMq.CreateChannel();
+        return rapidMq;
+    }
+
+    private RapidMq(Uri connectionString)
     {
         _connectionString = connectionString;
-        _connection = Connect();
-        _setupChannel = CreateChannel();
     }
 
     public RapidChannel CreateChannel(ChannelConfig channelConfig)
@@ -65,19 +73,40 @@ public class RapidMq
         return binding;
     }
 
-    private IConnection Connect()
+    private async Task Connect()
     {
-        return new ConnectionFactory
+        var policy = PolicyProvider.GetBackOffRetryPolicy(5, 2,
+            (exception, i) =>
+            {
+                Console.WriteLine($"Could not connect to the RabbitMQ server on: {i} attempt! - {exception.Message}");
+            });
+
+        await policy.ExecuteAsync(() =>
         {
-            Uri = _connectionString
-        }.CreateConnection();
+            var conn = new ConnectionFactory
+            {
+                Uri = _connectionString
+            }.CreateConnection();
+            _connection = conn;
+            return Task.CompletedTask;
+        });
     }
 
-    private IModel CreateChannel()
+    private async Task CreateChannel()
     {
-        var channel = _connection.CreateModel();
-        channel.BasicQos(0, 1, false);
-        return channel;
+        var policy = PolicyProvider.GetLinearRetryPolicy(5, 2,
+            (exception, i) =>
+            {
+                Console.WriteLine($"Could not connect to the SetupChannel on ${i} attempt! - {exception.Message}");
+            });
+
+        await policy.ExecuteAsync(() =>
+        {
+            var channel = _connection.CreateModel();
+            channel.BasicQos(0, 1, false);
+            _setupChannel = channel;
+            return Task.CompletedTask;
+        });
     }
 
     public void DeclareExchange(string exchangeName, string exchangeType)
