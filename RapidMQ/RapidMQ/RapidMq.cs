@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using System.Text.Json;
-using Polly;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RapidMQ.Internals;
@@ -76,37 +75,53 @@ public class RapidMq
     private async Task Connect()
     {
         var policy = PolicyProvider.GetBackOffRetryPolicy(5, 2,
-            (exception, i) =>
+            (exception, span, attempt) =>
             {
-                Console.WriteLine($"Could not connect to the RabbitMQ server on: {i} attempt! - {exception.Message}");
+                Console.WriteLine(
+                    $"Could not connect to the RabbitMQ server after {attempt}(s) attempt, timespan: {span}! - {exception.Message}");
             });
 
-        await policy.ExecuteAsync(() =>
+        await policy.ExecuteAsync(async (cancellationToken) =>
         {
-            var conn = new ConnectionFactory
+            try
             {
-                Uri = _connectionString
-            }.CreateConnection();
-            _connection = conn;
-            return Task.CompletedTask;
-        });
+                var conn = new ConnectionFactory
+                {
+                    Uri = _connectionString
+                }.CreateConnection();
+                _connection = conn;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Failed to connect: {e.Message}");
+                throw;
+            }
+        }, CancellationToken.None);
     }
 
     private async Task CreateChannel()
     {
         var policy = PolicyProvider.GetLinearRetryPolicy(5, 2,
-            (exception, i) =>
+            (exception, span, retryAttempt) =>
             {
-                Console.WriteLine($"Could not connect to the SetupChannel on ${i} attempt! - {exception.Message}");
+                Console.WriteLine(
+                    $"Could not connect to the SetupChannel after ${retryAttempt}(s) attempt, timespan: {span}! - {exception.Message}");
             });
 
-        await policy.ExecuteAsync(() =>
+        await policy.ExecuteAsync(async (cancellationToken) =>
         {
-            var channel = _connection.CreateModel();
-            channel.BasicQos(0, 1, false);
-            _setupChannel = channel;
-            return Task.CompletedTask;
-        });
+            try
+            {
+                var channel = _connection.CreateModel();
+                channel.BasicQos(0, 1, false);
+                _setupChannel = channel;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Failed to setup the channel: {e.Message}");
+                throw;
+            }
+        }, CancellationToken.None);
     }
 
     public void DeclareExchange(string exchangeName, string exchangeType)
