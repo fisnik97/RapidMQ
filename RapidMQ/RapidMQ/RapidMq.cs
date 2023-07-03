@@ -81,7 +81,7 @@ public class RapidMq
                     $"Could not connect to the RabbitMQ server after {attempt}(s) attempt, timespan: {span}! - {exception.Message}");
             });
 
-        await policy.ExecuteAsync(async (cancellationToken) =>
+        await policy.ExecuteAsync(async (_) =>
         {
             try
             {
@@ -108,7 +108,7 @@ public class RapidMq
                     $"Could not connect to the SetupChannel after ${retryAttempt}(s) attempt, timespan: {span}! - {exception.Message}");
             });
 
-        await policy.ExecuteAsync(async (cancellationToken) =>
+        await policy.ExecuteAsync(async (_) =>
         {
             try
             {
@@ -124,6 +124,14 @@ public class RapidMq
         }, CancellationToken.None);
     }
 
+    public void UnbindQueue(QueueBinding binding)
+    {
+        if (_queueBindings.TryGetValue(binding, out var existingBinding))
+            _queueBindings.Remove(existingBinding);
+
+        _setupChannel.QueueUnbind(binding.QueueName, binding.ExchangeName, binding.RoutingKey);
+    }
+
     public void DeclareExchange(string exchangeName, string exchangeType)
     {
         _setupChannel.ExchangeDeclare(exchangeName, exchangeType, true);
@@ -137,7 +145,7 @@ public class RapidMq
     public void PublishMessage<T>(string exchangeName, string routingKey, T message) where T : IMqMessage
     {
         using var channel = _connection.CreateModel();
-        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
+        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message, SerializingConfig.DefaultOptions));
         channel.BasicPublish(exchangeName, routingKey, body: body);
     }
 }

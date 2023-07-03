@@ -2,6 +2,7 @@
 using System.Text.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RapidMQ.Internals;
 using RapidMQ.Models;
 
 namespace RapidMQ;
@@ -41,21 +42,24 @@ public class RapidChannel
         Channel.BasicConsume(queueBinding.QueueName, false, Consumer);
     }
 
-
     private void DefineConsumerHandler()
     {
-        Consumer.Received += async (sender, args) =>
+        Consumer.Received += async (_, args) =>
         {
             var routingKey = args.RoutingKey;
             try
             {
-                if (!_handlers.TryGetValue(routingKey, out var handlerObj)) return;
+                if (!_handlers.TryGetValue(routingKey, out var handlerObj))
+                    throw new KeyNotFoundException(
+                        $"Routing key: {routingKey} has no handler binding associated with it!");
 
                 if (handlerObj is null)
-                    throw new InvalidCastException("Handler cannot be cast to correct type");
+                    throw new KeyNotFoundException(
+                        $"Routing key: {routingKey} has no handler binding associated with it!");
 
                 var body = Encoding.UTF8.GetString(args.Body.ToArray());
-                var message = JsonSerializer.Deserialize(body, handlerObj.MessageType);
+                var message = JsonSerializer.Deserialize(body, handlerObj.MessageType,
+                    SerializingConfig.DefaultOptions);
 
                 if (message != null)
                     await handlerObj.Handler(new MessageContext<IMqMessage>
