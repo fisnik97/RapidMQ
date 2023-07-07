@@ -7,7 +7,7 @@ using RapidMQ.Models;
 
 namespace RapidMQ;
 
-public class RapidMq
+public class RapidMq : IRapidMq
 {
     private readonly Uri _connectionString;
     private IConnection _connection = null!;
@@ -124,8 +124,10 @@ public class RapidMq
         }, CancellationToken.None);
     }
 
-    public void UnbindQueue(QueueBinding binding)
+    public void UnbindQueue(string queueName, string exchangeName, string routingKey)
     {
+        var binding = new QueueBinding(queueName, exchangeName, routingKey);
+
         if (_queueBindings.TryGetValue(binding, out var existingBinding))
             _queueBindings.Remove(existingBinding);
 
@@ -137,7 +139,7 @@ public class RapidMq
         _setupChannel.ExchangeDeclare(exchangeName, exchangeType, true);
     }
 
-    private void DeclareQueue(string queueName, bool durable = true, bool autoDelete = false)
+    public void DeclareQueue(string queueName, bool durable = true, bool autoDelete = false)
     {
         _setupChannel.QueueDeclare(queueName, durable, false, autoDelete);
     }
