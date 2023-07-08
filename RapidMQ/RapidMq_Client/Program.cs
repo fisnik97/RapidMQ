@@ -1,23 +1,18 @@
 ﻿using RabbitMQ.Client;
 using RapidMQ;
 using RapidMq_Client;
-using RapidMQ.Contracts;
 using RapidMQ.Models;
 
 const string connString = "amqp://localhost";
-
-
-var connectionManager = new ConnectionManager();
-var channelFactory = new ChannelFactory();
-
-var rapidMqFactory = new RapidMqFactory(connectionManager, channelFactory);
-
-var rapidMq = await rapidMqFactory.CreateAsync(new Uri(connString));
-
-
 const string queue = "alert.queue", notificationsQueue = "notifications.queue";
 const string exchange = "IoT";
 const string routingKey = "device.iot.alert", notificationsRoutingKey = "device.notifications.received";
+
+var connectionManager = new ConnectionManager();
+var channelFactory = new ChannelFactory();
+var rapidMqFactory = new RapidMqFactory(connectionManager, channelFactory);
+
+var rapidMq = await rapidMqFactory.CreateAsync(new Uri(connString));
 
 rapidMq.DeclareExchange(exchange, ExchangeType.Topic);
 
@@ -66,6 +61,6 @@ var alertMessage = new AlertNotifiedEvent(100, "2dsadasd", new object[]
     },
 });
 
-//rapidMq.PublishMessage(exchange, routingKey, alertMessage);
+rapidMq.PublishMessage(exchange, routingKey, alertMessage);
 
 Console.ReadLine();
