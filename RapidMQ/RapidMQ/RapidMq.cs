@@ -9,18 +9,16 @@ namespace RapidMQ;
 
 public class RapidMq : IRapidMq
 {
-    private readonly Uri _connectionString;
-    private IConnection _connection = null!;
+    private readonly IConnection _connection;
     private readonly HashSet<QueueBinding> _queueBindings = new();
-    private IModel _setupChannel = null!;
-    private IConnectionManager _connectionManager;
-    
-    public RapidMq(Uri connectionString, IConnectionManager connectionManager)
+    private readonly IModel _setupChannel;
+
+    public RapidMq(IConnection connection, IModel setupChannel)
     {
-        _connectionString = connectionString;
-        _connectionManager = connectionManager;
+        _connection = connection;
+        _setupChannel = setupChannel;
     }
-    
+
     public RapidChannel CreateChannel(ChannelConfig channelConfig)
     {
         var channel = _connection.CreateModel();
@@ -64,58 +62,6 @@ public class RapidMq : IRapidMq
         _queueBindings.Add(binding);
 
         return binding;
-    }
-
-    private async Task Connect()
-    {
-        var policy = PolicyProvider.GetBackOffRetryPolicy(5, 2,
-            (exception, span, attempt) =>
-            {
-                Console.WriteLine(
-                    $"Could not connect to the RabbitMQ server after {attempt}(s) attempt, timespan: {span}! - {exception.Message}");
-            });
-
-        await policy.ExecuteAsync(async (_) =>
-        {
-            try
-            {
-                var conn = new ConnectionFactory
-                {
-                    Uri = _connectionString
-                }.CreateConnection();
-                _connection = conn;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Failed to connect: {e.Message}");
-                throw;
-            }
-        }, CancellationToken.None);
-    }
-
-    private async Task CreateChannel()
-    {
-        var policy = PolicyProvider.GetLinearRetryPolicy(5, 2,
-            (exception, span, retryAttempt) =>
-            {
-                Console.WriteLine(
-                    $"Could not connect to the SetupChannel after ${retryAttempt}(s) attempt, timespan: {span}! - {exception.Message}");
-            });
-
-        await policy.ExecuteAsync(async (_) =>
-        {
-            try
-            {
-                var channel = _connection.CreateModel();
-                channel.BasicQos(0, 1, false);
-                _setupChannel = channel;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Failed to setup the channel: {e.Message}");
-                throw;
-            }
-        }, CancellationToken.None);
     }
 
     public void UnbindQueue(string queueName, string exchangeName, string routingKey)

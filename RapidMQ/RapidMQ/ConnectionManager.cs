@@ -3,11 +3,6 @@ using RapidMQ.Internals;
 
 namespace RapidMQ;
 
-public interface IConnectionManager
-{
-    Task<IConnection> ConnectAsync(Uri uri);
-}
-
 public class ConnectionManager : IConnectionManager
 {
     public async Task<IConnection> ConnectAsync(Uri uri)
@@ -16,7 +11,8 @@ public class ConnectionManager : IConnectionManager
             onRetry: ((exception, span, attemptNr) =>
             {
                 Console.WriteLine(
-                    $"Could not connect to the RabbitMQ server after {attemptNr}(s) attempt, timespan: {span}! - {exception.Message}");
+                    $"Could not connect to the RabbitMQ server after {attemptNr}(s) attempt, timespan: {span}!" +
+                    $" - {exception.Message}");
             }));
 
         return await policy.ExecuteAsync(async token =>
