@@ -1,11 +1,18 @@
 ﻿using RabbitMQ.Client;
 using RapidMQ;
 using RapidMq_Client;
+using RapidMQ.Contracts;
 using RapidMQ.Models;
 
 const string connString = "amqp://localhost";
 
-var rapidMq = await RapidMq.CreateAsync(new Uri(connString));
+
+var connectionManager = new ConnectionManager();
+var channelFactory = new ChannelFactory();
+
+var rapidMqFactory = new RapidMqFactory(connectionManager, channelFactory);
+
+var rapidMq = await rapidMqFactory.CreateAsync(new Uri(connString));
 
 
 const string queue = "alert.queue", notificationsQueue = "notifications.queue";
