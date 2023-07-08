@@ -2,6 +2,7 @@
 using System.Text.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RapidMQ.Contracts;
 using RapidMQ.Internals;
 using RapidMQ.Models;
 

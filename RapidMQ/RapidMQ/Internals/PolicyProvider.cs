@@ -3,9 +3,9 @@ using Polly.Retry;
 
 namespace RapidMQ.Internals;
 
-public static class PolicyProvider
+internal static class PolicyProvider
 {
-    public static AsyncRetryPolicy GetBackOffRetryPolicy(int maxRetries = 5, int secondsDelay = 2,
+    internal static AsyncRetryPolicy GetBackOffRetryPolicy(int maxRetries = 5, int secondsDelay = 2,
         Action<Exception, TimeSpan, int>? onRetry = default)
     {
         return Policy.Handle<Exception>()
@@ -15,7 +15,7 @@ public static class PolicyProvider
             );
     }
 
-    public static AsyncRetryPolicy GetLinearRetryPolicy(int maxRetries = 5, int secondsDelay = 2,
+    internal static AsyncRetryPolicy GetLinearRetryPolicy(int maxRetries = 5, int secondsDelay = 2,
         Action<Exception, TimeSpan, int>? onRetry = default)
     {
         return Policy.Handle<Exception>()

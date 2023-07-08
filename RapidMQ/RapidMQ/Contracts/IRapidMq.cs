@@ -1,6 +1,6 @@
 ﻿using RapidMQ.Models;
 
-namespace RapidMQ;
+namespace RapidMQ.Contracts;
 
 public interface IRapidMq
 {

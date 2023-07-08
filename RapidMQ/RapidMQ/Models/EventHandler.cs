@@ -1,6 +1,4 @@
-﻿using RapidMQ.Models;
-
-namespace RapidMQ;
+﻿namespace RapidMQ.Models;
 
 internal record HandlerAndType
 {

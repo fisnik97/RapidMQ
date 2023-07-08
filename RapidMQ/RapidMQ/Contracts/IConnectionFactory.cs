@@ -1,6 +1,6 @@
 ﻿using RabbitMQ.Client;
 
-namespace RapidMQ;
+namespace RapidMQ.Contracts;
 
 public interface IConnectionManager
 {

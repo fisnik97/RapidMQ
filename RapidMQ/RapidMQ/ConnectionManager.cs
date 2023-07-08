@@ -1,4 +1,5 @@
 ﻿using RabbitMQ.Client;
+using RapidMQ.Contracts;
 using RapidMQ.Internals;
 
 namespace RapidMQ;

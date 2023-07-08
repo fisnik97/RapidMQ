@@ -1,4 +1,4 @@
-﻿namespace RapidMQ;
+﻿namespace RapidMQ.Contracts;
 
 public interface IRapidMqFactory
 {
