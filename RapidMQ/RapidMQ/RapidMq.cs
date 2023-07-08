@@ -13,20 +13,14 @@ public class RapidMq : IRapidMq
     private IConnection _connection = null!;
     private readonly HashSet<QueueBinding> _queueBindings = new();
     private IModel _setupChannel = null!;
-
-    public static async Task<RapidMq> CreateAsync(Uri uri)
-    {
-        var rapidMq = new RapidMq(uri);
-        await rapidMq.Connect();
-        await rapidMq.CreateChannel();
-        return rapidMq;
-    }
-
-    private RapidMq(Uri connectionString)
+    private IConnectionManager _connectionManager;
+    
+    public RapidMq(Uri connectionString, IConnectionManager connectionManager)
     {
         _connectionString = connectionString;
+        _connectionManager = connectionManager;
     }
-
+    
     public RapidChannel CreateChannel(ChannelConfig channelConfig)
     {
         var channel = _connection.CreateModel();

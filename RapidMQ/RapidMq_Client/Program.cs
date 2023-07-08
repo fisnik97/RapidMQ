@@ -5,7 +5,10 @@ using RapidMQ.Models;
 
 const string connString = "amqp://localhost";
 
-var rapidMq = await RapidMq.CreateAsync(new Uri(connString));
+
+
+var rapidMq =  new RapidMq(new Uri(connString), new ConnectionManager(){});
+
 
 
 const string queue = "alert.queue", notificationsQueue = "notifications.queue";
