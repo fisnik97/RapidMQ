@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RapidMQ.Contracts;
@@ -13,11 +14,21 @@ public class RapidMq : IRapidMq
     private readonly IConnection _connection;
     private readonly HashSet<QueueBinding> _queueBindings = new();
     private readonly IModel _setupChannel;
+    private readonly ILogger<IRapidMq> _logger;
 
-    public RapidMq(IConnection connection, IModel setupChannel)
+    public RapidMq(IConnection connection, IModel setupChannel, ILogger<IRapidMq> logger)
     {
         _connection = connection;
         _setupChannel = setupChannel;
+        _logger = logger;
+
+        _connection.ConnectionShutdown += (sender, args) =>
+        {
+            if (args.Initiator == ShutdownInitiator.Application)
+                return;
+           //Implement the logic to re-create the rapid channels 
+            
+        };
     }
 
     public RapidChannel CreateChannel(ChannelConfig channelConfig)

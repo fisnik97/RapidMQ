@@ -1,4 +1,5 @@
 ﻿using RabbitMQ.Client;
+using RabbitMQ.Client.Exceptions;
 using RapidMQ.Contracts;
 using RapidMQ.Internals;
 
@@ -6,9 +7,11 @@ namespace RapidMQ;
 
 public class ConnectionManager : IConnectionManager
 {
+    public Func<ShutdownEventArgs, Task>? OnConnectionDrop { get; set; }
+
     public async Task<IConnection> ConnectAsync(Uri uri)
     {
-        var policy = PolicyProvider.GetBackOffRetryPolicy(5, 2,
+        var policy = PolicyProvider.GetBackOffRetryPolicy<BrokerUnreachableException>(5, 2,
             onRetry: ((exception, span, attemptNr) =>
             {
                 Console.WriteLine(
@@ -16,13 +19,19 @@ public class ConnectionManager : IConnectionManager
                     $" - {exception.Message}");
             }));
 
-        return await policy.ExecuteAsync(async token =>
+        var connection = await policy.ExecuteAsync(async token =>
         {
             return await Task.Run(() => new
                 ConnectionFactory
                 {
-                    Uri = uri
+                    Uri = uri,
+                    RequestedHeartbeat = TimeSpan.FromSeconds(30),
                 }.CreateConnection(), token);
         }, CancellationToken.None);
+
+        if (OnConnectionDrop != null)
+            connection.ConnectionShutdown += (_, args) => { Task.Run(() => { OnConnectionDrop(args); }); };
+
+        return connection;
     }
 }
