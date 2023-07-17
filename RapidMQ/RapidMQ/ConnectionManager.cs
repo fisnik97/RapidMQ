@@ -7,6 +7,8 @@ namespace RapidMQ;
 
 public class ConnectionManager : IConnectionManager
 {
+    public Func<ShutdownEventArgs, Task>? OnConnectionDrop { get; set; }
+
     public async Task<IConnection> ConnectAsync(Uri uri)
     {
         var policy = PolicyProvider.GetBackOffRetryPolicy<BrokerUnreachableException>(5, 2,
@@ -17,15 +19,19 @@ public class ConnectionManager : IConnectionManager
                     $" - {exception.Message}");
             }));
 
-        return await policy.ExecuteAsync(async token =>
+        var connection = await policy.ExecuteAsync(async token =>
         {
             return await Task.Run(() => new
                 ConnectionFactory
                 {
                     Uri = uri,
-                    AutomaticRecoveryEnabled = true,
-                    NetworkRecoveryInterval = TimeSpan.FromSeconds(5)
+                    RequestedHeartbeat = TimeSpan.FromSeconds(30),
                 }.CreateConnection(), token);
         }, CancellationToken.None);
+
+        if (OnConnectionDrop != null)
+            connection.ConnectionShutdown += (_, args) => { Task.Run(() => { OnConnectionDrop(args); }); };
+
+        return connection;
     }
 }

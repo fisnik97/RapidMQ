@@ -1,6 +1,9 @@
-﻿using RabbitMQ.Client;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using RabbitMQ.Client;
 using RapidMQ;
 using RapidMq_Client;
+using RapidMQ.Contracts;
 using RapidMQ.Models;
 
 const string connString = "amqp://localhost";
@@ -8,9 +11,19 @@ const string queue = "alert.queue", notificationsQueue = "notifications.queue";
 const string exchange = "IoT";
 const string routingKey = "device.iot.alert", notificationsRoutingKey = "device.notifications.received";
 
-var connectionManager = new ConnectionManager();
+var connectionManager = new ConnectionManager
+{
+    OnConnectionDrop = eventArgs =>
+    {
+        Console.WriteLine(eventArgs.Cause);
+        return Task.CompletedTask;
+    }
+};
+
+
 var channelFactory = new ChannelFactory();
-var rapidMqFactory = new RapidMqFactory(connectionManager, channelFactory);
+var logger = new Logger<IRapidMq>(new NullLoggerFactory());
+var rapidMqFactory = new RapidMqFactory(connectionManager, channelFactory, logger);
 
 var rapidMq = await rapidMqFactory.CreateAsync(new Uri(connString));
 

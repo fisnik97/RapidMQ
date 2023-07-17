@@ -1,4 +1,5 @@
-﻿using RapidMQ.Contracts;
+﻿using Microsoft.Extensions.Logging;
+using RapidMQ.Contracts;
 
 namespace RapidMQ;
 
@@ -6,17 +7,20 @@ public class RapidMqFactory : IRapidMqFactory
 {
     private readonly IConnectionManager _connectionManager;
     private readonly IChannelFactory _channelFactory;
+    private readonly ILogger<IRapidMq> _logger;
 
-    public RapidMqFactory(IConnectionManager connectionManager, IChannelFactory channelFactory)
+    public RapidMqFactory(IConnectionManager connectionManager, IChannelFactory channelFactory,
+        ILogger<IRapidMq> logger)
     {
         _connectionManager = connectionManager;
         _channelFactory = channelFactory;
+        _logger = logger;
     }
 
-    public async Task<RapidMq> CreateAsync(Uri connectionUri)
+    public async Task<IRapidMq> CreateAsync(Uri connectionUri)
     {
         var connection = await _connectionManager.ConnectAsync(connectionUri);
         var channel = await _channelFactory.CreateChannel(connection);
-        return new RapidMq(connection, channel);
+        return new RapidMq(connection, channel, _logger);
     }
 }
