@@ -29,7 +29,7 @@ var rapidMq = await rapidMqFactory.CreateAsync(new Uri(connString));
 
 rapidMq.DeclareExchange(exchange, ExchangeType.Topic);
 
-var slowChannel = rapidMq.CreateChannel(new ChannelConfig("MySlowChannel", 5, true));
+var slowChannel = rapidMq.CreateRapidChannel(new ChannelConfig("MySlowChannel", 5, true));
 
 var alertQueueBinding = rapidMq.CreateQueueBinding(
     new QueueModel(queue, true, false),
@@ -40,9 +40,9 @@ var alertQueueBinding = rapidMq.CreateQueueBinding(
 slowChannel.Listen(alertQueueBinding, new AlertNotifiedEventHandler()); // you can inject these type with DI too
 
 
-var singleMessageChannel = rapidMq.CreateChannel(new ChannelConfig("SingleMessage", 1, true));
+var singleMessageChannel = rapidMq.CreateRapidChannel(new ChannelConfig("SingleMessage", 1, true));
 
-var iotNotificationsBinding = rapidMq.CreateQueueBinding(
+var iotNotificationsBinding = rapidMq.GetOrCreateQueueBinding(
     notificationsQueue,
     exchange,
     notificationsRoutingKey

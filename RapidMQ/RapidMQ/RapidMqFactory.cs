@@ -20,7 +20,6 @@ public class RapidMqFactory : IRapidMqFactory
     public async Task<IRapidMq> CreateAsync(Uri connectionUri)
     {
         var connection = await _connectionManager.ConnectAsync(connectionUri);
-        var channel = await _channelFactory.CreateChannel(connection);
-        return new RapidMq(connection, channel, _logger);
+        return new RapidMq(connection, _channelFactory, _logger);
     }
 }
