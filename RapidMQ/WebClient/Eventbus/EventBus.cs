@@ -2,7 +2,7 @@
 using RapidMQ.Contracts;
 using RapidMQ.Models;
 
-namespace WebClient;
+namespace WebClient.Eventbus;
 
 public class EventBus : IEventBus
 {
@@ -13,7 +13,7 @@ public class EventBus : IEventBus
         _rapidMq = rapidMq;
     }
 
-    public void PublishEvent<TEvent>(string routingKey, string exchangeName, TEvent @event) where TEvent : IMqMessage
+    public void PublishEvent<TEvent>(string exchangeName, TEvent @event) where TEvent : IMqMessage
     {
         var eventRoutingKey = GetMqEventAttributeValue<TEvent>();
         _rapidMq.PublishMessage(exchangeName, eventRoutingKey, @event);
@@ -21,11 +21,12 @@ public class EventBus : IEventBus
 
     private static string GetMqEventAttributeValue<T>() where T : IMqMessage
     {
-        var attribute = typeof(T).GetCustomAttribute<MqEventAttribute>();
+        var attribute = typeof(T).GetCustomAttribute<MqEventRoutingKey>();
 
         if (attribute?.RoutingKey == null)
             throw new ArgumentNullException(nameof(attribute));
 
         return attribute.RoutingKey;
     }
+    
 }

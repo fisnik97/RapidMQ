@@ -1,16 +1,30 @@
 using Microsoft.AspNetCore.Mvc;
+using WebClient.Eventbus;
+using WebClient.Events;
 
 namespace WebClient.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class PushEventController : ControllerBase
+public class EventController : ControllerBase
 {
-    private readonly ILogger<PushEventController> _logger;
+    private readonly ILogger<EventController> _logger;
 
-    public PushEventController(ILogger<PushEventController> logger)
+    private readonly IEventBus _eventBus;
+    
+    public EventController(ILogger<EventController> logger, IEventBus eventBus)
     {
         _logger = logger;
+        _eventBus = eventBus;
     }
-    
+
+    [HttpPost("alertReceived/publish")]
+    public async Task<IActionResult> PublishEvent([FromBody] AlertReceivedEvent request)
+    {
+        _eventBus.PublishEvent("IoT", request);
+        
+        await Task.Delay(1000);
+        
+        return StatusCode(200);
+    }
 }

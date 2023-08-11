@@ -20,14 +20,12 @@ var connectionManager = new ConnectionManager
     }
 };
 
-
-var channelFactory = new ChannelFactory();
 var logger = new Logger<IRapidMq>(new NullLoggerFactory());
-var rapidMqFactory = new RapidMqFactory(connectionManager, channelFactory, logger);
+var rapidMqFactory = new RapidMqFactory(connectionManager, logger);
 
 var rapidMq = await rapidMqFactory.CreateAsync(new Uri(connString));
 
-rapidMq.DeclareExchange(exchange, ExchangeType.Topic);
+rapidMq.GetOrCreateExchange(exchange, ExchangeType.Topic);
 
 var slowChannel = rapidMq.CreateRapidChannel(new ChannelConfig("MySlowChannel", 5, true));
 

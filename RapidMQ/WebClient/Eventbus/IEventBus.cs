@@ -1,8 +1,8 @@
 ﻿using RapidMQ.Models;
 
-namespace WebClient;
+namespace WebClient.Eventbus;
 
 public interface IEventBus
 {
-    void PublishEvent<TEvent>(string routingKey, string exchangeName, TEvent @event) where TEvent : IMqMessage;
+    void PublishEvent<TEvent>(string exchangeName, TEvent @event) where TEvent : IMqMessage;
 }

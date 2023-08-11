@@ -14,23 +14,14 @@ public class RapidMq : IRapidMq
     private readonly IConnection _connection;
     private readonly HashSet<QueueBinding> _queueBindings = new();
     private readonly IModel _setupChannel;
+
     private readonly ILogger<IRapidMq> _logger;
-    private readonly IChannelFactory _channelFactory;
 
-
-    public static async RapidMq CreateAsync(Uri connectionUri, IConnection connection, IChannelFactory channelFactory, ILogger<IRapidMq> logger)
-    {
-        
-    } 
-    
-    public RapidMq(IConnection connection, IChannelFactory channelFactory, ILogger<IRapidMq> logger)
+    public RapidMq(IConnection connection, ILogger<IRapidMq> logger)
     {
         _connection = connection;
-        _channelFactory = channelFactory;
         _logger = logger;
-
-        _setupChannel = await _channelFactory.CreateChannel(connection);
-
+        _setupChannel = _connection.CreateModel();
 
         _connection.ConnectionShutdown += (sender, args) =>
         {
@@ -38,16 +29,6 @@ public class RapidMq : IRapidMq
                 return;
             //Implement the logic to re-create the rapid channels 
         };
-    }
-
-    public async Task<RapidChannel> CreateRapidChannelAsync(ChannelConfig channelConfig)
-    {
-        var channel = await _channelFactory.CreateChannel(_connection);
-        channel.BasicQos(0, channelConfig.PrefetchCount, channelConfig.IsGlobal);
-
-        var consumer = new EventingBasicConsumer(channel);
-        var rapidChannel = new RapidChannel(channelConfig.Id, channel, consumer);
-        return rapidChannel;
     }
 
     public RapidChannel CreateRapidChannel(ChannelConfig channelConfig)
@@ -91,7 +72,6 @@ public class RapidMq : IRapidMq
 
         var binding = new QueueBinding(queue, routingKey, exchangeName);
         _queueBindings.Add(binding);
-\032
         return binding;
     }
 
@@ -105,26 +85,21 @@ public class RapidMq : IRapidMq
         _setupChannel.QueueUnbind(binding.QueueName, binding.ExchangeName, binding.RoutingKey);
     }
 
-    public void DeclareExchange(string exchangeName, string exchangeType)
+    public string GetOrCreateExchange(string exchangeName, string exchangeType)
     {
         _setupChannel.ExchangeDeclare(exchangeName, exchangeType, true);
+        return exchangeName;
     }
 
-    public void DeclareQueue(string queueName, bool durable = true, bool autoDelete = false)
+    public string DeclareQueue(string queueName, bool durable = true, bool autoDelete = false)
     {
-        _setupChannel.QueueDeclare(queueName, durable, false, autoDelete);
+        var data = _setupChannel.QueueDeclare(queueName, durable, false, autoDelete);
+        return data.QueueName;
     }
 
     public void PublishMessage<T>(string exchangeName, string routingKey, T message) where T : IMqMessage
     {
         using var channel = _connection.CreateModel();
-        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message, SerializingConfig.DefaultOptions));
-        channel.BasicPublish(exchangeName, routingKey, body: body);
-    }
-
-    public async Task PublishMessageAsync<T>(string exchangeName, string routingKey, T message) where T : IMqMessage
-    {
-        var channel = await _channelFactory.CreateChannel(_connection);
         var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message, SerializingConfig.DefaultOptions));
         channel.BasicPublish(exchangeName, routingKey, body: body);
     }

@@ -1,4 +1,4 @@
-﻿namespace WebClient;
+﻿namespace WebClient.Services;
 
 public class SomeService : ISomeService
 {
