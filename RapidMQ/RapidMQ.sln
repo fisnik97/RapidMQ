@@ -2,7 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RapidMQ", "RapidMQ\RapidMQ.csproj", "{F822B11E-8687-4595-8CEA-3B036EE36D2D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RapidMq_Client", "RapidMq_Client\RapidMq_Client.csproj", "{FF6D8708-286B-4765-9677-2491EB3190D5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebClient", "WebClient\WebClient.csproj", "{47B7DAF5-0305-466F-BC04-21C45FB84FFC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -14,9 +14,9 @@ Global
 		{F822B11E-8687-4595-8CEA-3B036EE36D2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F822B11E-8687-4595-8CEA-3B036EE36D2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F822B11E-8687-4595-8CEA-3B036EE36D2D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FF6D8708-286B-4765-9677-2491EB3190D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FF6D8708-286B-4765-9677-2491EB3190D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FF6D8708-286B-4765-9677-2491EB3190D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FF6D8708-286B-4765-9677-2491EB3190D5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47B7DAF5-0305-466F-BC04-21C45FB84FFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47B7DAF5-0305-466F-BC04-21C45FB84FFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47B7DAF5-0305-466F-BC04-21C45FB84FFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47B7DAF5-0305-466F-BC04-21C45FB84FFC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -6,21 +6,18 @@ namespace RapidMQ;
 public class RapidMqFactory : IRapidMqFactory
 {
     private readonly IConnectionManager _connectionManager;
-    private readonly IChannelFactory _channelFactory;
     private readonly ILogger<IRapidMq> _logger;
 
-    public RapidMqFactory(IConnectionManager connectionManager, IChannelFactory channelFactory,
+    public RapidMqFactory(IConnectionManager connectionManager,
         ILogger<IRapidMq> logger)
     {
         _connectionManager = connectionManager;
-        _channelFactory = channelFactory;
         _logger = logger;
     }
 
-    public async Task<IRapidMq> CreateAsync(Uri connectionUri)
+    public async Task<RapidMq> CreateAsync(Uri connectionUri)
     {
         var connection = await _connectionManager.ConnectAsync(connectionUri);
-        var channel = await _channelFactory.CreateChannel(connection);
-        return new RapidMq(connection, channel, _logger);
+        return new RapidMq(connection, _logger);
     }
 }

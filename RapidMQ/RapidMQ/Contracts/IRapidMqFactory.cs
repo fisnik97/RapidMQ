@@ -2,5 +2,5 @@
 
 public interface IRapidMqFactory
 {
-    Task<IRapidMq> CreateAsync(Uri connectionUri);
+    Task<RapidMq> CreateAsync(Uri connectionUri);
 }
