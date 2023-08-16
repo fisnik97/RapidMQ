@@ -17,15 +17,14 @@ builder.Services.AddSwaggerGen();
 // some random service
 builder.Services.AddTransient<ISomeService, SomeService>();
 
-
 var rapidMq = await builder
     .InstantiateEventBus();
 
-
-builder.Services.AddSingleton<IRapidMq>(rapidMq);
+builder.Services.AddSingleton(rapidMq);
 
 // register event handlers
 builder.Services.AddScoped<IMqMessageHandler<AlertReceivedEvent>, AlertReceivedEventHandler>();
+builder.Services.AddScoped<IMqMessageHandler<NotificationEvent>, NotificationEventHandler>();
 
 // register event bus
 builder.Services.AddSingleton<IEventBus, EventBus>();

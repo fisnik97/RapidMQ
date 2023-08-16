@@ -5,7 +5,7 @@ namespace RapidMQ.Contracts;
 public interface IRapidMq
 {
     public RapidChannel CreateRapidChannel(ChannelConfig channelConfig);
-    public QueueBinding CreateQueueBinding(QueueModel queue, string exchangeName, string routingKey);
+    public QueueBinding GetOrCreateQueueBinding(QueueModel queue, string exchangeName, string routingKey);
     public QueueBinding GetOrCreateQueueBinding(string queueName, string exchangeName, string routingKey);
     public void UnbindQueue(string queueName, string exchangeName, string routingKey);
     public string GetOrCreateExchange(string exchangeName, string exchangeType);

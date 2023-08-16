@@ -26,8 +26,15 @@ public class RapidMq : IRapidMq
         _connection.ConnectionShutdown += (sender, args) =>
         {
             if (args.Initiator == ShutdownInitiator.Application)
+            {
+                Console.WriteLine("The AMQP connection is dropped by the application.");
                 return;
-            //Implement the logic to re-create the rapid channels 
+            }
+            else
+            {
+                var shutdownEventArgs = args;
+                Console.WriteLine("The AMQP connection is dropped by the broker.");
+            }
         };
     }
 
@@ -41,7 +48,7 @@ public class RapidMq : IRapidMq
         return rapidChannel;
     }
 
-    public QueueBinding CreateQueueBinding(QueueModel queue, string exchangeName, string routingKey)
+    public QueueBinding GetOrCreateQueueBinding(QueueModel queue, string exchangeName, string routingKey)
     {
         var existingBinding = _queueBindings.FirstOrDefault(x =>
             x.QueueName == queue.QueueName && x.RoutingKey == routingKey && x.ExchangeName == exchangeName);
