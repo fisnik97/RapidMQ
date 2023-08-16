@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RapidMQ.Internals;
@@ -70,11 +71,11 @@ public class RapidChannel
                         BasicProperties = args.BasicProperties
                     });
 
-                Channel.BasicAck(args.DeliveryTag, true);
+                Channel.BasicAck(args.DeliveryTag, false);
             }
             catch (Exception e)
             {
-                Channel.BasicNack(args.DeliveryTag, true, false);
+                Channel.BasicNack(args.DeliveryTag, false, false);
             }
         };
     }
