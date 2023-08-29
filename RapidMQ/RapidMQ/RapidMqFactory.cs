@@ -1,23 +1,27 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using RapidMQ.Contracts;
+using RapidMQ.Models;
 
 namespace RapidMQ;
 
 public class RapidMqFactory : IRapidMqFactory
 {
     private readonly IConnectionManager _connectionManager;
-    private readonly ILogger<IRapidMq> _logger;
+    private readonly Logger<IRapidMq> _logger;
 
     public RapidMqFactory(IConnectionManager connectionManager,
-        ILogger<IRapidMq> logger)
+        Logger<IRapidMq> logger)
     {
         _connectionManager = connectionManager;
         _logger = logger;
     }
 
-    public async Task<RapidMq> CreateAsync(Uri connectionUri)
+    public async Task<RapidMq> CreateAsync(ConnectionManagerConfig connectionManagerConfig,
+        JsonSerializerOptions? jsonSerializerOptions = null)
     {
-        var connection = await _connectionManager.ConnectAsync(connectionUri);
-        return new RapidMq(connection, _logger);
+        var connection = await _connectionManager.ConnectAsync(connectionManagerConfig);
+
+        return new RapidMq(connection, _logger, jsonSerializerOptions);
     }
 }

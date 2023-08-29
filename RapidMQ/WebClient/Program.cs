@@ -1,8 +1,10 @@
+using RapidMQ;
 using RapidMQ.Contracts;
 using RapidMQ.Models;
 using WebClient.Eventbus;
 using WebClient.EventHandlers;
 using WebClient.Events;
+using WebClient.HostedServices;
 using WebClient.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,21 +19,24 @@ builder.Services.AddSwaggerGen();
 // some random service
 builder.Services.AddTransient<ISomeService, SomeService>();
 
-var rapidMq = await builder
-    .InstantiateEventBus();
+builder.Services.AddLogging();
 
-builder.Services.AddSingleton(rapidMq);
+builder.Services.AddSingleton<IConnectionManager, ConnectionManager>();
 
 // register event handlers
 builder.Services.AddScoped<IMqMessageHandler<AlertReceivedEvent>, AlertReceivedEventHandler>();
 builder.Services.AddScoped<IMqMessageHandler<NotificationEvent>, NotificationEventHandler>();
 
+
 // register event bus
 builder.Services.AddSingleton<IEventBus, EventBus>();
 
+// Hosted service
+builder.Services.AddHostedService<RapidMqHostedService>();
+
+
 var app = builder.Build();
 
-rapidMq.BuildInfrastructure(app.Services);
     
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
