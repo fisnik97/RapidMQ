@@ -1,9 +1,9 @@
 ﻿using RabbitMQ.Client;
+using RapidMQ.Models;
 
 namespace RapidMQ.Contracts;
 
 public interface IConnectionManager
 {
-    public Func<ShutdownEventArgs, Task>? OnConnectionDrop { get; set; }
-    Task<IConnection> ConnectAsync(Uri uri);
+    Task<IConnection> ConnectAsync(ConnectionManagerConfig connectionManagerConfig);
 }

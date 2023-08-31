@@ -16,24 +16,28 @@ public class RapidMq : IRapidMq
     private readonly IModel _setupChannel;
 
     private readonly ILogger<IRapidMq> _logger;
+    private readonly JsonSerializerOptions? _jsonSerializerOptions;
 
-    public RapidMq(IConnection connection, ILogger<IRapidMq> logger)
+    public RapidMq(IConnection connection, ILogger<IRapidMq> logger,
+        JsonSerializerOptions? jsonSerializerOptions = null)
     {
         _connection = connection;
         _logger = logger;
+        _jsonSerializerOptions = jsonSerializerOptions;
         _setupChannel = _connection.CreateModel();
 
         _connection.ConnectionShutdown += (sender, args) =>
         {
             if (args.Initiator == ShutdownInitiator.Application)
             {
-                Console.WriteLine("The AMQP connection is dropped by the application.");
-                return;
+                _logger.LogCritical("The AMQP connection is dropped by the application.");
             }
             else
             {
-                var shutdownEventArgs = args;
-                Console.WriteLine("The AMQP connection is dropped by the broker.");
+                //TODO: Retry to connect again and activate channels or recreate based on their configurations
+                _logger.LogCritical(
+                    $"The AMQP connection is dropped by the broker. " +
+                    $"Initiator: {args.Initiator}, ReplyCode: {args.ReplyCode}, ReplyText: {args.ReplyText}");
             }
         };
     }
@@ -44,7 +48,7 @@ public class RapidMq : IRapidMq
         channel.BasicQos(0, channelConfig.PrefetchCount, channelConfig.IsGlobal);
 
         var consumer = new EventingBasicConsumer(channel);
-        var rapidChannel = new RapidChannel(channelConfig.Id, channel, consumer);
+        var rapidChannel = new RapidChannel(channelConfig.Id, channel, consumer, _logger, _jsonSerializerOptions);
         return rapidChannel;
     }
 
@@ -107,7 +111,8 @@ public class RapidMq : IRapidMq
     public void PublishMessage<T>(string exchangeName, string routingKey, T message) where T : IMqMessage
     {
         using var channel = _connection.CreateModel();
-        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message, SerializingConfig.DefaultOptions));
+        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message,
+            _jsonSerializerOptions ?? SerializingConfig.DefaultOptions));
         channel.BasicPublish(exchangeName, routingKey, body: body);
     }
 }

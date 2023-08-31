@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RapidMQ.Contracts;
 using RapidMQ.Internals;
 using RapidMQ.Models;
 
@@ -16,11 +17,18 @@ public class RapidChannel
 
     private readonly Dictionary<string, HandlerAndType> _handlers = new();
 
-    internal RapidChannel(string channelName, IModel channel, EventingBasicConsumer consumer)
+    private readonly ILogger<IRapidMq> _logger;
+
+    private readonly JsonSerializerOptions? _jsonSerializerOptions;
+
+    internal RapidChannel(string channelName, IModel channel, EventingBasicConsumer consumer, ILogger<IRapidMq> logger,
+        JsonSerializerOptions? jsonSerializerOptions = null)
     {
         ChannelName = channelName;
         Channel = channel;
         Consumer = consumer;
+        _logger = logger;
+        _jsonSerializerOptions = jsonSerializerOptions;
         DefineConsumerHandler();
     }
 
@@ -58,25 +66,36 @@ public class RapidChannel
                     throw new KeyNotFoundException(
                         $"Routing key: {routingKey} has no handler binding associated with it!");
 
-                var body = Encoding.UTF8.GetString(args.Body.ToArray());
-                var message = JsonSerializer.Deserialize(body, handlerObj.MessageType,
-                    SerializingConfig.DefaultOptions);
-
-                if (message != null)
-                    await handlerObj.Handler(new MessageContext<IMqMessage>
-                    {
-                        Message = (IMqMessage)message,
-                        DeliveryTag = args.DeliveryTag,
-                        RoutingKey = routingKey,
-                        BasicProperties = args.BasicProperties
-                    });
+                await ExecuteMessageHandler(args, handlerObj, routingKey);
 
                 Channel.BasicAck(args.DeliveryTag, false);
             }
             catch (Exception e)
             {
+                _logger.LogError(e, "An error occurred while processing the message.");
                 Channel.BasicNack(args.DeliveryTag, false, false);
             }
         };
+    }
+
+    private async Task ExecuteMessageHandler(BasicDeliverEventArgs args, HandlerAndType handlerObj, string routingKey)
+    {
+        var body = Encoding.UTF8.GetString(args.Body.ToArray());
+        var message = JsonSerializer.Deserialize(body, handlerObj.MessageType,
+            _jsonSerializerOptions ?? SerializingConfig.DefaultOptions);
+
+        if (message == null)
+            throw new ArgumentNullException(nameof(args),
+                $"Message is null after deserializing the body! RoutingKey:{routingKey}, Body: {body}");
+
+        var messageContext = new MessageContext<IMqMessage>
+        {
+            Message = (IMqMessage)message,
+            DeliveryTag = args.DeliveryTag,
+            RoutingKey = routingKey,
+            BasicProperties = args.BasicProperties
+        };
+
+        await handlerObj.Handler(messageContext);
     }
 }
