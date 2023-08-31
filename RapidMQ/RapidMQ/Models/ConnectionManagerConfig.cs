@@ -4,39 +4,54 @@ namespace RapidMQ.Models;
 
 public class ConnectionManagerConfig
 {
-    public Uri Uri { get; init; }
+    /// <summary>
+    /// Threshold for the number of connection retries before giving up.
+    /// </summary>
     public int MaxConnectionRetries { get; init; }
+    
+    /// <summary>
+    /// Delay between connection retries. Initial delay if ExponentialBackoffRetry is set to true.
+    /// </summary>
     public TimeSpan DelayBetweenRetries { get; init; }
+    
+    /// <summary>
+    /// Enables exponential backoff for connection retries.
+    /// </summary>
     public bool ExponentialBackoffRetry { get; init; }
-    public Func<ShutdownEventArgs, Task>? OnConnectionShutdownEventHandler {  get; init; }
+    
+    /// <summary>
+    /// Custom delegate invoked when the connection is shutdown.
+    /// </summary>
+    public Func<ShutdownEventArgs, Task>? OnConnectionShutdownEventHandler { get; init; }
+    
+    /// <summary>
+    /// Custom delegate invoked when re-trying to connect to the broker.
+    /// </summary>
     public Func<Exception, int, TimeSpan, Task>? OnReconnectRetryEventHandler { get; init; }
 
-    public ConnectionManagerConfig(Uri uri, int maxConnectionRetries, TimeSpan delayBetweenRetries,
+    public ConnectionManagerConfig(int maxConnectionRetries, TimeSpan delayBetweenRetries,
         bool exponentialBackoffRetry)
     {
-        Uri = uri;
         MaxConnectionRetries = maxConnectionRetries;
         DelayBetweenRetries = delayBetweenRetries;
         ExponentialBackoffRetry = exponentialBackoffRetry;
     }
 
-    public ConnectionManagerConfig(Uri uri, int maxConnectionRetries, TimeSpan delayBetweenRetries,
+    public ConnectionManagerConfig(int maxConnectionRetries, TimeSpan delayBetweenRetries,
         bool exponentialBackoffRetry,
         Func<ShutdownEventArgs, Task>? onConnectionShutdownEventHandler)
     {
-        Uri = uri;
         MaxConnectionRetries = maxConnectionRetries;
         DelayBetweenRetries = delayBetweenRetries;
         ExponentialBackoffRetry = exponentialBackoffRetry;
         OnConnectionShutdownEventHandler = onConnectionShutdownEventHandler;
     }
 
-    public ConnectionManagerConfig(Uri uri, int maxConnectionRetries, TimeSpan delayBetweenRetries,
+    public ConnectionManagerConfig(int maxConnectionRetries, TimeSpan delayBetweenRetries,
         bool exponentialBackoffRetry,
         Func<ShutdownEventArgs, Task>? onConnectionShutdownEventHandler,
         Func<Exception, int, TimeSpan, Task>? onReconnectRetryEventHandler)
     {
-        Uri = uri;
         MaxConnectionRetries = maxConnectionRetries;
         DelayBetweenRetries = delayBetweenRetries;
         ExponentialBackoffRetry = exponentialBackoffRetry;

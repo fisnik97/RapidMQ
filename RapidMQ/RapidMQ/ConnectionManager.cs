@@ -19,6 +19,40 @@ public class ConnectionManager : IConnectionManager
     private Func<ShutdownEventArgs, Task>? OnConnectionShutdownEventHandler { get; set; }
     private Func<Exception, int, TimeSpan, Task>? OnReconnectRetryEventHandler { get; set; }
 
+    public async Task<IConnection> ConnectAsync(Uri connectionUri, ConnectionManagerConfig connectionManagerConfig)
+    {
+        if (connectionUri == null)
+            throw new ArgumentNullException(nameof(connectionUri));
+        
+        ValidateConfiguration(connectionManagerConfig);
+
+        OnReconnectRetryEventHandler = connectionManagerConfig.OnReconnectRetryEventHandler;
+        OnConnectionShutdownEventHandler = connectionManagerConfig.OnConnectionShutdownEventHandler;
+
+        var connection = await ConnectToBroker(connectionUri,
+            connectionManagerConfig.MaxConnectionRetries,
+            connectionManagerConfig.DelayBetweenRetries);
+
+        if (OnConnectionShutdownEventHandler != null)
+            connection.ConnectionShutdown += (_, args) =>
+            {
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        OnConnectionShutdownEventHandler(args);
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogError(e,
+                            "Exception occurred in OnConnectionShutdownEventHandler");
+                    }
+                });
+            };
+
+        return connection;
+    }
+
     private async Task<IConnection> ConnectToBroker(Uri uri, int maxRetries, TimeSpan delay)
     {
         var policy = PolicyProvider.GetBackOffRetryPolicy<BrokerUnreachableException>(
@@ -56,41 +90,6 @@ public class ConnectionManager : IConnectionManager
 
     private static void ValidateConfiguration(ConnectionManagerConfig config)
     {
-        if (config.Uri == null)
-        {
-            throw new ArgumentNullException(nameof(config), "Please provide a valid connection uri");
-        }
-        // apply more URI validation rules for amqp connection
-    }
-
-    public async Task<IConnection> ConnectAsync(ConnectionManagerConfig connectionManagerConfig)
-    {
-        ValidateConfiguration(connectionManagerConfig);
-
-        OnReconnectRetryEventHandler = connectionManagerConfig.OnReconnectRetryEventHandler;
-        OnConnectionShutdownEventHandler = connectionManagerConfig.OnConnectionShutdownEventHandler;
-
-        var connection = await ConnectToBroker(connectionManagerConfig.Uri,
-            connectionManagerConfig.MaxConnectionRetries,
-            connectionManagerConfig.DelayBetweenRetries);
-
-        if (OnConnectionShutdownEventHandler != null)
-            connection.ConnectionShutdown += (_, args) =>
-            {
-                Task.Run(() =>
-                {
-                    try
-                    {
-                        OnConnectionShutdownEventHandler(args);
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogError(e,
-                            "Exception occurred in OnConnectionShutdownEventHandler");
-                    }
-                });
-            };
-
-        return connection;
+        // Apply rules for connection manager config
     }
 }

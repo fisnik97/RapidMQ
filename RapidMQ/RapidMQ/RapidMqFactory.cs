@@ -17,10 +17,10 @@ public class RapidMqFactory : IRapidMqFactory
         _logger = logger;
     }
 
-    public async Task<RapidMq> CreateAsync(ConnectionManagerConfig connectionManagerConfig,
+    public async Task<RapidMq> CreateAsync(Uri connectionUri, ConnectionManagerConfig connectionManagerConfig,
         JsonSerializerOptions? jsonSerializerOptions = null)
     {
-        var connection = await _connectionManager.ConnectAsync(connectionManagerConfig);
+        var connection = await _connectionManager.ConnectAsync(connectionUri, connectionManagerConfig);
 
         return new RapidMq(connection, _logger, jsonSerializerOptions);
     }
