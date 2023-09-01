@@ -1,5 +1,8 @@
 ﻿namespace RapidMQ.Models;
 
+/// <summary>
+/// Base interface for all messages sent through RapidMQ
+/// </summary>
 public interface IMqMessage
 {
     public Guid Id { get; set; }

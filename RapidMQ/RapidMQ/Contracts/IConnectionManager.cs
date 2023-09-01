@@ -5,5 +5,11 @@ namespace RapidMQ.Contracts;
 
 public interface IConnectionManager
 {
-    Task<IConnection> ConnectAsync(ConnectionManagerConfig connectionManagerConfig);
+    /// <summary>
+    /// Creates a new connection to the RabbitMQ broker.
+    /// </summary>
+    /// <param name="connectionUri">RabbitMq broker URI </param>
+    /// <param name="connectionManagerConfig">ConnectionManager configurations </param>
+    /// <returns>RabbitMQ.Client.IConnection</returns>
+    Task<IConnection> ConnectAsync(Uri connectionUri, ConnectionManagerConfig connectionManagerConfig);
 }
