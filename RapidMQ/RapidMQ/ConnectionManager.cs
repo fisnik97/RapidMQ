@@ -60,9 +60,16 @@ public class ConnectionManager : IConnectionManager
             delay,
             onRetry: ((exception, span, attemptNr) =>
             {
-                var handler = OnReconnectRetryEventHandler;
+                var  onReconnectRetryEventHandler = OnReconnectRetryEventHandler;
 
-                handler?.Invoke(exception, attemptNr, span);
+                try
+                {
+                    onReconnectRetryEventHandler?.Invoke(exception, attemptNr, span);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError("OnReconnectRetryEventHandler - {Message}", e.Message);
+                }
 
                 Console.WriteLine(
                     $"Could not connect to the RabbitMQ server after {attemptNr}(s) attempt, timespan: {span}! - Exception: {exception.InnerException?.Message ?? exception.Message}");
