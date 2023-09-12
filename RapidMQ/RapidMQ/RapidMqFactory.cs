@@ -22,6 +22,7 @@ public class RapidMqFactory : IRapidMqFactory
     {
         var connection = await _connectionManager.ConnectAsync(connectionUri, connectionManagerConfig);
 
-        return new RapidMq(connection, _logger, jsonSerializerOptions);
+        return new RapidMq(connection, _logger, _connectionManager, connectionManagerConfig, connectionUri,
+            jsonSerializerOptions);
     }
 }
