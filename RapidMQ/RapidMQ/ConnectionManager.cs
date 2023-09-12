@@ -23,7 +23,7 @@ public class ConnectionManager : IConnectionManager
     {
         if (connectionUri == null)
             throw new ArgumentNullException(nameof(connectionUri));
-        
+
         ValidateConfiguration(connectionManagerConfig);
 
         OnReconnectRetryEventHandler = connectionManagerConfig.OnReconnectRetryEventHandler;
@@ -60,30 +60,32 @@ public class ConnectionManager : IConnectionManager
             delay,
             onRetry: ((exception, span, attemptNr) =>
             {
-                var handler = OnReconnectRetryEventHandler;
+                var  onReconnectRetryEventHandler = OnReconnectRetryEventHandler;
+
                 try
                 {
-                    handler?.Invoke(exception, attemptNr, span);
+                    onReconnectRetryEventHandler?.Invoke(exception, attemptNr, span);
                 }
                 catch (Exception e)
                 {
                     _logger.LogError("OnReconnectRetryEventHandler - {Message}", e.Message);
                 }
 
+                Console.WriteLine(
+                    $"Could not connect to the RabbitMQ server after {attemptNr}(s) attempt, timespan: {span}! - Exception: {exception.InnerException?.Message ?? exception.Message}");
+
                 _logger.LogError(
                     "Could not connect to the RabbitMQ server after {AttemptNr}(s) attempt, timespan: {Span}! - Exception: {ExceptionMessage}",
                     attemptNr, span, exception.InnerException?.Message ?? exception.Message);
             }));
 
-        var connection = await policy.ExecuteAsync(async token =>
-        {
-            return await Task.Run(() => new
+        var connection = await policy.ExecuteAsync(_ =>
+            Task.FromResult(new
                 ConnectionFactory
                 {
                     Uri = uri,
                     RequestedHeartbeat = TimeSpan.FromSeconds(30),
-                }.CreateConnection(), token);
-        }, CancellationToken.None);
+                }.CreateConnection()), CancellationToken.None);
 
         return connection;
     }

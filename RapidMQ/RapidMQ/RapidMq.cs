@@ -11,14 +11,15 @@ namespace RapidMQ;
 
 public class RapidMq : IRapidMq
 {
-    private readonly IConnection _connection;
+    private IConnection _connection;
     private readonly HashSet<QueueBinding> _queueBindings = new();
     private readonly IModel _setupChannel;
 
     private readonly ILogger<IRapidMq> _logger;
     private readonly JsonSerializerOptions? _jsonSerializerOptions;
 
-    public RapidMq(IConnection connection, ILogger<IRapidMq> logger,
+    public RapidMq(IConnection connection, ILogger<IRapidMq> logger, IConnectionManager connectionManager,
+        ConnectionManagerConfig connectionManagerConfig, Uri connectionUri,
         JsonSerializerOptions? jsonSerializerOptions = null)
     {
         _connection = connection;
@@ -26,7 +27,7 @@ public class RapidMq : IRapidMq
         _jsonSerializerOptions = jsonSerializerOptions;
         _setupChannel = _connection.CreateModel();
 
-        _connection.ConnectionShutdown += (sender, args) =>
+        _connection.ConnectionShutdown += async (sender, args) =>
         {
             if (args.Initiator == ShutdownInitiator.Application)
             {
@@ -38,6 +39,9 @@ public class RapidMq : IRapidMq
                 _logger.LogCritical(
                     $"The AMQP connection is dropped by the broker. " +
                     $"Initiator: {args.Initiator}, ReplyCode: {args.ReplyCode}, ReplyText: {args.ReplyText}");
+                _logger.LogCritical("Trying to reconnect to the broker...");
+                
+                _connection = await connectionManager.ConnectAsync(connectionUri, connectionManagerConfig);
             }
         };
     }
