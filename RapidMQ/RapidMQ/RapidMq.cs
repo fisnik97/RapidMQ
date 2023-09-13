@@ -37,10 +37,11 @@ public class RapidMq : IRapidMq
             {
                 //TODO: Retry to connect again and activate channels or recreate based on their configurations
                 _logger.LogCritical(
-                    $"The AMQP connection is dropped by the broker. " +
-                    $"Initiator: {args.Initiator}, ReplyCode: {args.ReplyCode}, ReplyText: {args.ReplyText}");
+                    "The AMQP connection is dropped by the broker. Initiator: {Initiator}, ReplyCode: {ReplyCode}, ReplyText: {ReplyText}",
+                    nameof(args.Initiator), args.ReplyCode.ToString(), args.ReplyText);
+
                 _logger.LogCritical("Trying to reconnect to the broker...");
-                
+
                 _connection = await connectionManager.ConnectAsync(connectionUri, connectionManagerConfig);
             }
         };

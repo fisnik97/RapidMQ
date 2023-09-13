@@ -8,26 +8,28 @@ public class ConnectionManagerConfig
     /// Threshold for the number of connection retries before giving up.
     /// </summary>
     public int MaxConnectionRetries { get; init; }
-    
+
     /// <summary>
     /// Delay between connection retries. Initial delay if ExponentialBackoffRetry is set to true.
     /// </summary>
     public TimeSpan DelayBetweenRetries { get; init; }
-    
+
     /// <summary>
     /// Enables exponential backoff for connection retries.
     /// </summary>
     public bool ExponentialBackoffRetry { get; init; }
-    
+
     /// <summary>
-    /// Custom delegate invoked when the connection is shutdown.
+    /// Custom client delegate invoked when the connection is shutdown.
     /// </summary>
     public Func<ShutdownEventArgs, Task>? OnConnectionShutdownEventHandler { get; init; }
-    
+
     /// <summary>
-    /// Custom delegate invoked when re-trying to connect to the broker.
+    /// Custom client delegate invoked when re-trying to connect to the broker.
     /// </summary>
     public Func<Exception, int, TimeSpan, Task>? OnReconnectRetryEventHandler { get; init; }
+    
+    public Action? OnConnectionRecovery { get; init; }
 
     public ConnectionManagerConfig(int maxConnectionRetries, TimeSpan delayBetweenRetries,
         bool exponentialBackoffRetry)
@@ -57,5 +59,18 @@ public class ConnectionManagerConfig
         ExponentialBackoffRetry = exponentialBackoffRetry;
         OnConnectionShutdownEventHandler = onConnectionShutdownEventHandler;
         OnReconnectRetryEventHandler = onReconnectRetryEventHandler;
+    }
+    
+    public ConnectionManagerConfig(int maxConnectionRetries, TimeSpan delayBetweenRetries,
+        bool exponentialBackoffRetry,
+        Func<ShutdownEventArgs, Task>? onConnectionShutdownEventHandler,
+        Func<Exception, int, TimeSpan, Task>? onReconnectRetryEventHandler, Action? onConnectionRecovery)
+    {
+        MaxConnectionRetries = maxConnectionRetries;
+        DelayBetweenRetries = delayBetweenRetries;
+        ExponentialBackoffRetry = exponentialBackoffRetry;
+        OnConnectionShutdownEventHandler = onConnectionShutdownEventHandler;
+        OnReconnectRetryEventHandler = onReconnectRetryEventHandler;
+        OnConnectionRecovery = onConnectionRecovery;
     }
 }
