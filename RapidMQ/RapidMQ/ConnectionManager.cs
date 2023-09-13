@@ -18,16 +18,16 @@ public class ConnectionManager : IConnectionManager
 
     private Func<ShutdownEventArgs, Task>? OnConnectionShutdownEventHandler { get; set; }
     private Func<Exception, int, TimeSpan, Task>? OnReconnectRetryEventHandler { get; set; }
+    private Action? OnConnectionRecovery { get; set; }
 
     public async Task<IConnection> ConnectAsync(Uri connectionUri, ConnectionManagerConfig connectionManagerConfig)
     {
         if (connectionUri == null)
-            throw new ArgumentNullException(nameof(connectionUri));
-
-        ValidateConfiguration(connectionManagerConfig);
+            throw new ArgumentNullException(nameof(connectionUri), "Connection URI cannot be null!");
 
         OnReconnectRetryEventHandler = connectionManagerConfig.OnReconnectRetryEventHandler;
         OnConnectionShutdownEventHandler = connectionManagerConfig.OnConnectionShutdownEventHandler;
+        OnConnectionRecovery = connectionManagerConfig.OnConnectionRecovery;
 
         var connection = await ConnectToBroker(connectionUri,
             connectionManagerConfig.MaxConnectionRetries,
@@ -55,24 +55,22 @@ public class ConnectionManager : IConnectionManager
 
     private async Task<IConnection> ConnectToBroker(Uri uri, int maxRetries, TimeSpan delay)
     {
+        var isReconnectionAttempted = false;
         var policy = PolicyProvider.GetBackOffRetryPolicy<BrokerUnreachableException>(
             maxRetries,
             delay,
             onRetry: ((exception, span, attemptNr) =>
             {
-                var  onReconnectRetryEventHandler = OnReconnectRetryEventHandler;
-
+                isReconnectionAttempted = true;
+                var onReconnectRetryEventHandler = OnReconnectRetryEventHandler;
                 try
                 {
-                    onReconnectRetryEventHandler?.Invoke(exception, attemptNr, span);
+                    Task.Run(() => onReconnectRetryEventHandler?.Invoke(exception, attemptNr, span));
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError("OnReconnectRetryEventHandler - {Message}", e.Message);
+                    _logger.LogError(e, "OnReconnectRetryEventHandler failed!");
                 }
-
-                Console.WriteLine(
-                    $"Could not connect to the RabbitMQ server after {attemptNr}(s) attempt, timespan: {span}! - Exception: {exception.InnerException?.Message ?? exception.Message}");
 
                 _logger.LogError(
                     "Could not connect to the RabbitMQ server after {AttemptNr}(s) attempt, timespan: {Span}! - Exception: {ExceptionMessage}",
@@ -87,11 +85,17 @@ public class ConnectionManager : IConnectionManager
                     RequestedHeartbeat = TimeSpan.FromSeconds(30),
                 }.CreateConnection()), CancellationToken.None);
 
-        return connection;
-    }
+        if (!isReconnectionAttempted) return connection;
 
-    private static void ValidateConfiguration(ConnectionManagerConfig config)
-    {
-        // Apply rules for connection manager config
+        try
+        {
+            await Task.Run(() => OnConnectionRecovery?.Invoke());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "OnConnectionRecovery failed!");
+        }
+
+        return connection;
     }
 }
