@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Globalization;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
 using RapidMQ.Contracts;
@@ -31,7 +32,9 @@ public class ConnectionManager : IConnectionManager
 
         var connection = await ConnectToBroker(connectionUri,
             connectionManagerConfig.MaxConnectionRetries,
-            connectionManagerConfig.DelayBetweenRetries);
+            connectionManagerConfig.DelayBetweenRetries,
+            connectionManagerConfig.ExponentialBackoffRetry
+        );
 
         if (OnConnectionShutdownEventHandler != null)
             connection.ConnectionShutdown += (_, args) =>
@@ -53,12 +56,12 @@ public class ConnectionManager : IConnectionManager
         return connection;
     }
 
-    private async Task<IConnection> ConnectToBroker(Uri uri, int maxRetries, TimeSpan delay)
+    private async Task<IConnection> ConnectToBroker(Uri uri, int maxRetries, TimeSpan delay,
+        bool exponentialBackoffRetry)
     {
         var isReconnectionAttempted = false;
-        var policy = PolicyProvider.GetBackOffRetryPolicy<BrokerUnreachableException>(
-            maxRetries,
-            delay,
+        var policy = PolicyProvider.GetAsyncRetryPolicy<BrokerUnreachableException>(
+            new RetryConfiguration(maxRetries, (int)delay.TotalMilliseconds, exponentialBackoffRetry),
             onRetry: ((exception, span, attemptNr) =>
             {
                 isReconnectionAttempted = true;
@@ -73,8 +76,9 @@ public class ConnectionManager : IConnectionManager
                 }
 
                 _logger.LogError(
-                    "Could not connect to the RabbitMQ server after {AttemptNr}(s) attempt, timespan: {Span}! - Exception: {ExceptionMessage}",
-                    attemptNr, span, exception.InnerException?.Message ?? exception.Message);
+                    "Could not connect to the RabbitMQ server after {AttemptNr}(s) attempt, timespan (ms): {Span}! - Exception: {ExceptionMessage}",
+                    attemptNr, span.TotalMilliseconds.ToString(CultureInfo.InvariantCulture),
+                    exception.InnerException?.Message ?? exception.Message);
             }));
 
         var connection = await policy.ExecuteAsync(_ =>
