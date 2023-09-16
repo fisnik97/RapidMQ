@@ -28,8 +28,11 @@ public class ConnectionManagerConfig
     /// Custom client delegate invoked when re-trying to connect to the broker.
     /// </summary>
     public Func<Exception, int, TimeSpan, Task>? OnReconnectRetryEventHandler { get; init; }
-    
-    public Action? OnConnectionRecovery { get; init; }
+
+    /// <summary>
+    /// Represents a delegate that client can provide to be invoked when the connection is recovered.
+    /// </summary>
+    public Func<Task>? OnConnectionRecovery { get; init; }
 
     public ConnectionManagerConfig(int maxConnectionRetries, TimeSpan delayBetweenRetries,
         bool exponentialBackoffRetry)
@@ -60,11 +63,11 @@ public class ConnectionManagerConfig
         OnConnectionShutdownEventHandler = onConnectionShutdownEventHandler;
         OnReconnectRetryEventHandler = onReconnectRetryEventHandler;
     }
-    
+
     public ConnectionManagerConfig(int maxConnectionRetries, TimeSpan delayBetweenRetries,
         bool exponentialBackoffRetry,
         Func<ShutdownEventArgs, Task>? onConnectionShutdownEventHandler,
-        Func<Exception, int, TimeSpan, Task>? onReconnectRetryEventHandler, Action? onConnectionRecovery)
+        Func<Exception, int, TimeSpan, Task>? onReconnectRetryEventHandler, Func<Task>? onConnectionRecovery)
     {
         MaxConnectionRetries = maxConnectionRetries;
         DelayBetweenRetries = delayBetweenRetries;

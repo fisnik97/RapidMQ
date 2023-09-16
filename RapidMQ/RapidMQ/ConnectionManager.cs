@@ -19,9 +19,19 @@ public class ConnectionManager : IConnectionManager
 
     private Func<ShutdownEventArgs, Task>? OnConnectionShutdownEventHandler { get; set; }
     private Func<Exception, int, TimeSpan, Task>? OnReconnectRetryEventHandler { get; set; }
-    private Action? OnConnectionRecovery { get; set; }
+    private Func<Task>? OnConnectionRecovery { get; set; }
 
-    public async Task<IConnection> ConnectAsync(Uri connectionUri, ConnectionManagerConfig connectionManagerConfig)
+    protected virtual IConnection CreateConnectionInstance(Uri uri)
+    {
+        return new ConnectionFactory
+        {
+            Uri = uri,
+            RequestedHeartbeat = TimeSpan.FromSeconds(30),
+        }.CreateConnection();
+    }
+
+    public virtual async Task<IConnection> ConnectAsync(Uri connectionUri,
+        ConnectionManagerConfig connectionManagerConfig)
     {
         if (connectionUri == null)
             throw new ArgumentNullException(nameof(connectionUri), "Connection URI cannot be null!");
@@ -39,18 +49,12 @@ public class ConnectionManager : IConnectionManager
         if (OnConnectionShutdownEventHandler != null)
             connection.ConnectionShutdown += (_, args) =>
             {
-                Task.Run(() =>
-                {
-                    try
+                Task.Run(async () => { await OnConnectionShutdownEventHandler(args); })
+                    .ContinueWith(t =>
                     {
-                        OnConnectionShutdownEventHandler(args);
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogError(e,
-                            "Exception occurred in OnConnectionShutdownEventHandler");
-                    }
-                });
+                        if (t.IsFaulted)
+                            _logger.LogError(t.Exception, "OnConnectionShutdownEventHandler failed!");
+                    });
             };
 
         return connection;
@@ -62,42 +66,41 @@ public class ConnectionManager : IConnectionManager
         var isReconnectionAttempted = false;
         var policy = PolicyProvider.GetAsyncRetryPolicy<BrokerUnreachableException>(
             new RetryConfiguration(maxRetries, (int)delay.TotalMilliseconds, exponentialBackoffRetry),
-            onRetry: ((exception, span, attemptNr) =>
+            onRetry: (exception, span, attemptNr) =>
             {
                 isReconnectionAttempted = true;
                 var onReconnectRetryEventHandler = OnReconnectRetryEventHandler;
-                try
+                if (onReconnectRetryEventHandler != null)
                 {
-                    Task.Run(() => onReconnectRetryEventHandler?.Invoke(exception, attemptNr, span));
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "OnReconnectRetryEventHandler failed!");
+                    Task.Run(async () => await onReconnectRetryEventHandler.Invoke(exception, attemptNr, span))
+                        .ContinueWith(
+                            t =>
+                            {
+                                if (t.IsFaulted)
+                                    _logger.LogError(t.Exception, "OnReconnectRetryEventHandler failed!");
+                            });
                 }
 
                 _logger.LogError(
-                    "Could not connect to the RabbitMQ server after {AttemptNr}(s) attempt, timespan (ms): {Span}! - Exception: {ExceptionMessage}",
+                    "Retrying to connect to the RabbitMQ server after: {AttemptNr} attempt(s), timespan (ms): {Span}! - Exception: {ExceptionMessage}",
                     attemptNr, span.TotalMilliseconds.ToString(CultureInfo.InvariantCulture),
                     exception.InnerException?.Message ?? exception.Message);
-            }));
+            });
 
         var connection = await policy.ExecuteAsync(_ =>
-            Task.FromResult(new
-                ConnectionFactory
-                {
-                    Uri = uri,
-                    RequestedHeartbeat = TimeSpan.FromSeconds(30),
-                }.CreateConnection()), CancellationToken.None);
+            Task.FromResult(CreateConnectionInstance(uri)), CancellationToken.None);
 
         if (!isReconnectionAttempted) return connection;
 
-        try
+        var onConnectionRecovery = OnConnectionRecovery;
+        if (onConnectionRecovery != null)
         {
-            await Task.Run(() => OnConnectionRecovery?.Invoke());
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "OnConnectionRecovery failed!");
+            Task.Run(async () => await onConnectionRecovery.Invoke())
+                .ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                        _logger.LogError(t.Exception, "OnConnectionRecovery failed!");
+                });
         }
 
         return connection;
