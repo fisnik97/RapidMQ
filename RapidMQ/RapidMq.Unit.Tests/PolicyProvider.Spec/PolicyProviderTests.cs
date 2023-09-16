@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 using RapidMQ.Internals;
+using Xunit;
 
 namespace RapidMq.Unit.Tests.PolicyProvider.Spec;
 
