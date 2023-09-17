@@ -64,7 +64,7 @@ public class ConnectionManager : IConnectionManager
         bool exponentialBackoffRetry)
     {
         var isReconnectionAttempted = false;
-        var policy = PolicyProvider.GetAsyncRetryPolicy<BrokerUnreachableException>(
+        var policy = PolicyProvider.GetAsyncRetryPolicy<Exception>(
             new RetryConfiguration(maxRetries, (int)delay.TotalMilliseconds, exponentialBackoffRetry),
             onRetry: (exception, span, attemptNr) =>
             {
