@@ -7,10 +7,12 @@ namespace WebClient.HostedServices;
 public class RapidMqHostedService : IHostedService
 {
     private readonly IServiceProvider _serviceProvider;
+    private readonly CancellationTokenSource _cancellationTokenSource;
 
-    public RapidMqHostedService(IServiceProvider serviceProvider)
+    public RapidMqHostedService(IServiceProvider serviceProvider, CancellationTokenSource cancellationTokenSource)
     {
         _serviceProvider = serviceProvider;
+        _cancellationTokenSource = cancellationTokenSource;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -40,6 +42,7 @@ public class RapidMqHostedService : IHostedService
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        _cancellationTokenSource.Cancel();
+        return Task.CompletedTask;
     }
 }

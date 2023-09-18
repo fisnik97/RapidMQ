@@ -10,8 +10,10 @@ public interface IRapidMqFactory
     /// </summary>
     /// <param name="connectionUri">Uri of the RabbitMQ broker</param>
     /// <param name="connectionManagerConfig">Configuration for the rabbitMq connection</param>
+    /// <param name="cancellationToken"></param>
     /// <param name="jsonSerializerOptions">Optional parameter for serializing and deserializing messages</param>
     /// <returns></returns>
     Task<RapidMq> CreateAsync(Uri connectionUri, ConnectionManagerConfig connectionManagerConfig,
+        CancellationToken cancellationToken = default,
         JsonSerializerOptions? jsonSerializerOptions = null);
-}
+} 

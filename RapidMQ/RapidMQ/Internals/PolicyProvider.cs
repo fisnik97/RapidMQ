@@ -5,19 +5,19 @@ namespace RapidMQ.Internals;
 
 public static class PolicyProvider
 {
-    public static AsyncRetryPolicy GetAsyncRetryPolicy<TException>(RetryConfiguration retryConfiguration,
-        Action<TException, TimeSpan, int>? onRetry = null) where TException : Exception
+    public static AsyncRetryPolicy GetCappedForeverRetryPolicy<TException>(RetryConfiguration retryConfiguration,
+        Action<TException, int, TimeSpan>? onRetry = null, CancellationToken cancellationToken = default)
+        where TException : Exception
     {
         return Policy.Handle<TException>()
-            .WaitAndRetryAsync(retryConfiguration.MaxRetries,
-                retryAttempt => retryConfiguration.ExponentialBackoffRetry
-                    ? TimeSpan.FromMilliseconds(retryConfiguration.MillisecondsBetweenRetries *
-                                                Math.Pow(2, retryAttempt - 1))
-                    : TimeSpan.FromMilliseconds(retryConfiguration.MillisecondsBetweenRetries),
-                (exception, timeSpan, retryCount, context) =>
-                {
-                    onRetry?.Invoke((TException)exception, timeSpan, retryCount);
-                }
-            );
+            .WaitAndRetryForeverAsync(sleepDuration =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var exponentialDelay = TimeSpan.FromMilliseconds(retryConfiguration.InitialMillisecondsRetry *
+                                                                 Math.Pow(2, sleepDuration - 1));
+                var maxDelay = TimeSpan.FromMilliseconds(retryConfiguration.MaxMillisecondsDelay);
+
+                return exponentialDelay < maxDelay ? exponentialDelay : maxDelay;
+            }, (exception, retryCount, span) => { onRetry?.Invoke((TException)exception, retryCount, span); });
     }
 }

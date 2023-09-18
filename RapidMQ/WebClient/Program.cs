@@ -24,10 +24,13 @@ builder.Services.AddTransient<ISomeService, SomeService>();
 builder.Services.AddSingleton<IConnectionManager, ConnectionManager>();
 builder.Services.AddSingleton<ILogger, Logger<IRapidMq>>();
 
+builder.Services.AddSingleton<CancellationTokenSource>();
+
 builder.Services.AddSingleton<IRapidMq>(sp =>
 {
     // Resolve dependencies
     var connectionManager = sp.GetRequiredService<IConnectionManager>();
+    var cancellationTokenSource = sp.GetRequiredService<CancellationTokenSource>();
 
     // ideally create a logger implementation for IRapidMq
     var logger = new Logger<IRapidMq>(new NullLoggerFactory());
@@ -39,18 +42,20 @@ builder.Services.AddSingleton<IRapidMq>(sp =>
         throw new ArgumentNullException(nameof(configuration), "Please provide a connection for amqp!");
 
     // These configurations can also be read from appsettings.json using a section
-    const int maxConnectionRetries = 5;
-    const bool exponentialBackoffRetry = true;
-    var connectionRetryDelay = TimeSpan.FromSeconds(5);
+    const int maxMillisecondsRetry = 30000;
+    const int initialMillisecondsRetry = 2000;
 
     var connectionManagerConfig =
-        new ConnectionManagerConfig(maxConnectionRetries, connectionRetryDelay,
-            exponentialBackoffRetry);
+        new ConnectionManagerConfig(
+            maxMillisecondsRetry,
+            initialMillisecondsRetry);
+
     var rapidMqFactory = new RapidMqFactory(connectionManager, logger);
 
     return
-        rapidMqFactory.CreateAsync(new Uri(eventBusConnectionString), 
-                connectionManagerConfig).GetAwaiter()
+        rapidMqFactory
+            .CreateAsync(new Uri(eventBusConnectionString), connectionManagerConfig, cancellationTokenSource.Token)
+            .GetAwaiter()
             .GetResult();
 });
 
