@@ -18,11 +18,13 @@ public class RapidMqFactory : IRapidMqFactory
     }
 
     public async Task<RapidMq> CreateAsync(Uri connectionUri, ConnectionManagerConfig connectionManagerConfig,
+        CancellationToken cancellationToken = default,
         JsonSerializerOptions? jsonSerializerOptions = null)
     {
-        var connection = await _connectionManager.ConnectAsync(connectionUri, connectionManagerConfig);
+        var connection =
+            await _connectionManager.ConnectAsync(connectionUri, connectionManagerConfig, cancellationToken);
 
         return new RapidMq(connection, _logger, _connectionManager, connectionManagerConfig, connectionUri,
-            jsonSerializerOptions);
+            jsonSerializerOptions, cancellationToken);
     }
 }

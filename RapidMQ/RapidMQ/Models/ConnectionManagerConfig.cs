@@ -7,17 +7,12 @@ public class ConnectionManagerConfig
     /// <summary>
     /// Threshold for the number of connection retries before giving up.
     /// </summary>
-    public int MaxConnectionRetries { get; init; }
+    public int MaxMillisecondsDelay { get; init; }
 
     /// <summary>
     /// Delay between connection retries. Initial delay if ExponentialBackoffRetry is set to true.
     /// </summary>
-    public TimeSpan DelayBetweenRetries { get; init; }
-
-    /// <summary>
-    /// Enables exponential backoff for connection retries.
-    /// </summary>
-    public bool ExponentialBackoffRetry { get; init; }
+    public int InitialMillisecondsRetry { get; init; }
 
     /// <summary>
     /// Custom client delegate invoked when the connection is shutdown.
@@ -34,44 +29,36 @@ public class ConnectionManagerConfig
     /// </summary>
     public Func<Task>? OnConnectionRecovery { get; init; }
 
-    public ConnectionManagerConfig(int maxConnectionRetries, TimeSpan delayBetweenRetries,
-        bool exponentialBackoffRetry)
+    public ConnectionManagerConfig(int maxMillisecondsDelay, int initialMillisecondsRetry)
     {
-        MaxConnectionRetries = maxConnectionRetries;
-        DelayBetweenRetries = delayBetweenRetries;
-        ExponentialBackoffRetry = exponentialBackoffRetry;
+        MaxMillisecondsDelay = maxMillisecondsDelay;
+        InitialMillisecondsRetry = initialMillisecondsRetry;
     }
 
-    public ConnectionManagerConfig(int maxConnectionRetries, TimeSpan delayBetweenRetries,
-        bool exponentialBackoffRetry,
+    public ConnectionManagerConfig(int maxMillisecondsDelay, int initialMillisecondsRetry,
         Func<ShutdownEventArgs, Task>? onConnectionShutdownEventHandler)
     {
-        MaxConnectionRetries = maxConnectionRetries;
-        DelayBetweenRetries = delayBetweenRetries;
-        ExponentialBackoffRetry = exponentialBackoffRetry;
+        MaxMillisecondsDelay = maxMillisecondsDelay;
+        InitialMillisecondsRetry = initialMillisecondsRetry;
         OnConnectionShutdownEventHandler = onConnectionShutdownEventHandler;
     }
 
-    public ConnectionManagerConfig(int maxConnectionRetries, TimeSpan delayBetweenRetries,
-        bool exponentialBackoffRetry,
+    public ConnectionManagerConfig(int maxMillisecondsDelay, int initialMillisecondsRetry,
         Func<ShutdownEventArgs, Task>? onConnectionShutdownEventHandler,
         Func<Exception, int, TimeSpan, Task>? onReconnectRetryEventHandler)
     {
-        MaxConnectionRetries = maxConnectionRetries;
-        DelayBetweenRetries = delayBetweenRetries;
-        ExponentialBackoffRetry = exponentialBackoffRetry;
+        MaxMillisecondsDelay = maxMillisecondsDelay;
+        InitialMillisecondsRetry = initialMillisecondsRetry;
         OnConnectionShutdownEventHandler = onConnectionShutdownEventHandler;
         OnReconnectRetryEventHandler = onReconnectRetryEventHandler;
     }
 
-    public ConnectionManagerConfig(int maxConnectionRetries, TimeSpan delayBetweenRetries,
-        bool exponentialBackoffRetry,
+    public ConnectionManagerConfig(int maxMillisecondsDelay, int initialMillisecondsRetry,
         Func<ShutdownEventArgs, Task>? onConnectionShutdownEventHandler,
         Func<Exception, int, TimeSpan, Task>? onReconnectRetryEventHandler, Func<Task>? onConnectionRecovery)
     {
-        MaxConnectionRetries = maxConnectionRetries;
-        DelayBetweenRetries = delayBetweenRetries;
-        ExponentialBackoffRetry = exponentialBackoffRetry;
+        MaxMillisecondsDelay = maxMillisecondsDelay;
+        InitialMillisecondsRetry = initialMillisecondsRetry;
         OnConnectionShutdownEventHandler = onConnectionShutdownEventHandler;
         OnReconnectRetryEventHandler = onReconnectRetryEventHandler;
         OnConnectionRecovery = onConnectionRecovery;

@@ -20,7 +20,7 @@ public class RapidMq : IRapidMq
 
     public RapidMq(IConnection connection, ILogger<IRapidMq> logger, IConnectionManager connectionManager,
         ConnectionManagerConfig connectionManagerConfig, Uri connectionUri,
-        JsonSerializerOptions? jsonSerializerOptions = null)
+        JsonSerializerOptions? jsonSerializerOptions = null, CancellationToken cancellationToken = default)
     {
         _connection = connection;
         _logger = logger;
@@ -35,14 +35,13 @@ public class RapidMq : IRapidMq
             }
             else
             {
-                //TODO: Retry to connect again and activate channels or recreate based on their configurations
                 _logger.LogCritical(
                     "The AMQP connection is dropped by the broker. Initiator: {Initiator}, ReplyCode: {ReplyCode}, ReplyText: {ReplyText}",
                     nameof(args.Initiator), args.ReplyCode.ToString(), args.ReplyText);
 
                 _logger.LogCritical("Trying to reconnect to the broker...");
-
-                _connection = await connectionManager.ConnectAsync(connectionUri, connectionManagerConfig);
+                _connection =
+                    await connectionManager.ConnectAsync(connectionUri, connectionManagerConfig, cancellationToken);
             }
         };
     }

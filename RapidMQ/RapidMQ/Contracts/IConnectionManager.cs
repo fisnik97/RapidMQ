@@ -10,6 +10,8 @@ public interface IConnectionManager
     /// </summary>
     /// <param name="connectionUri">RabbitMq broker URI </param>
     /// <param name="connectionManagerConfig">ConnectionManager configurations </param>
+    /// <param name="cancellationToken"></param>
     /// <returns>RabbitMQ.Client.IConnection</returns>
-    Task<IConnection> ConnectAsync(Uri connectionUri, ConnectionManagerConfig connectionManagerConfig);
+    Task<IConnection> ConnectAsync(Uri connectionUri, ConnectionManagerConfig connectionManagerConfig,
+        CancellationToken cancellationToken = default);
 }
