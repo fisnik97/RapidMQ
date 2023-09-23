@@ -8,7 +8,8 @@
 
 `RapidMQ` is a simplified wrapper of [RabbitMQ](https://github.com/rabbitmq/rabbitmq-dotnet-client) library, designed to help developers manage [RabbitMQ](https://github.com/rabbitmq/rabbitmq-dotnet-client) interactions more easily, particularly by providing easy ways to configure channels with different attributes such as `prefetch count`, `prefetch size` and other settings. 
 Library is designed to work with the so called `RapidChannels` which are wrappers of `IModel` interface. 
-`RapidChannels` are designed to be used in a way that each channel is responsible it's queues. This way, developers can easily manage their queues and their interactions with RabbitMQ based on the channel configurations.
+`RapidChannels` are designed to be used in a way that each channel is responsible it's routing the consumed messages to the appropriate client handler.
+This way, developers can easily manage their queues and their interactions with RabbitMQ based on the channel configurations.
 
 ## Key Features
 - Simple interface to RabbitMQ (_Requires basic knowledge of RabbitMQ_)

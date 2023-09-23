@@ -480,4 +480,6 @@ $RECYCLE.BIN/
 *.swp
 
 #Rider files
-.idea/
+*.idea/
+*.puml 
+*.png
