@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <PackageId>RapidMQ</PackageId>
-        <Version>1.0.0</Version>
+        <Version>1.0.1</Version>
         <Authors>Fisnik Maloku</Authors>
         <Company>-</Company>
         <Description>Simple RabbitMQ wrapper for .NET</Description>
@@ -12,6 +12,7 @@
         <RepositoryType>git</RepositoryType>
         <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
+        <PackagereadmeFile>README.md</PackagereadmeFile>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
