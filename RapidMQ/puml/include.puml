@@ -1,0 +1,23 @@
+
+@startuml
+!include .\\.\RapidMQ\ConnectionManager.puml
+!include .\\.\RapidMQ\RapidChannel.puml
+!include .\\.\RapidMQ\RapidMq.puml
+!include .\\.\RapidMQ\RapidMqFactory.puml
+!include .\\Contracts\IConnectionManager.puml
+!include .\\Contracts\IRapidMq.puml
+!include .\\Contracts\IRapidMqFactory.puml
+/' !include .\\Internals\PolicyProvider.puml 
+!include .\\Internals\RetryConfiguration.puml 
+!include .\\Internals\SerializingConfig.puml 
+!include .\\Models\ConnectionManagerConfig.puml'/
+!include .\\Models\ChannelConfig.puml
+!include .\\Models\EventHandler.puml
+!include .\\Models\IMqMessage.puml
+!include .\\Models\ImqMessageHandler.puml
+!include .\\Models\MessageContext.puml
+!include .\\Models\MqMessage.puml
+!include .\\Models\QueueBinding.puml
+!include .\\Models\QueueModel.puml
+@enduml
+

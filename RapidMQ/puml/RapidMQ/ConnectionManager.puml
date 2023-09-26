@@ -1,0 +1,7 @@
+@startuml
+class ConnectionManager {
+    + ConnectionManager(logger:ILogger<ConnectionManager>)
+    + <<virtual>> <<async>> ConnectAsync(connectionUri:Uri, connectionManagerConfig:ConnectionManagerConfig, cancellationToken:CancellationToken) : Task<IConnection>
+}
+IConnectionManager <|-- ConnectionManager
+@enduml

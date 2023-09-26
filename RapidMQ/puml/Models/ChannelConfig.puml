@@ -1,0 +1,7 @@
+@startuml
+class ChannelConfig <<record>> {
+    + Id : string <<get>> <<init>>
+    + PrefetchCount : ushort <<get>> <<init>>
+    + IsGlobal : bool <<get>> <<init>> = true
+}
+@enduml

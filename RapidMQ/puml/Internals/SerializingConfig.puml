@@ -1,0 +1,4 @@
+@startuml
+class SerializingConfig <<static>> {
+}
+@enduml

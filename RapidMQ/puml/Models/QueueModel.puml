@@ -1,0 +1,10 @@
+@startuml
+class QueueModel <<record>> {
+    + QueueName : string <<get>> <<init>>
+    + Durable : bool <<get>> <<init>>
+    + AutoDelete : bool <<get>> <<init>>
+}
+class "Func`2"<T1,T2> {
+}
+QueueModel o-> "DefaultQueue<string,QueueModel>" "Func`2"
+@enduml

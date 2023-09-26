@@ -1,0 +1,5 @@
+@startuml
+class PolicyProvider <<static>> {
+    + {static} GetCappedForeverRetryPolicy(retryConfiguration:RetryConfiguration, onRetry:Action<TException, int, TimeSpan>?, cancellationToken:CancellationToken) : AsyncRetryPolicy
+}
+@enduml

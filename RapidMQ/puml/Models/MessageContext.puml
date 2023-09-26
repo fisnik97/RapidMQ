@@ -1,0 +1,8 @@
+@startuml
+class "MessageContext`1"<T> {
+    + Message : T <<get>> <<set>>
+    + RoutingKey : string <<get>> <<set>>
+    + DeliveryTag : ulong <<get>> <<set>>
+}
+"MessageContext`1" --> "BasicProperties" IBasicProperties
+@enduml

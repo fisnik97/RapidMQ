@@ -1,0 +1,11 @@
+@startuml
+interface IRapidMq {
+    + CreateRapidChannel(channelConfig:ChannelConfig) : RapidChannel
+    + GetOrCreateQueueBinding(queue:QueueModel, exchangeName:string, routingKey:string) : QueueBinding
+    + GetOrCreateQueueBinding(queueName:string, exchangeName:string, routingKey:string) : QueueBinding
+    + UnbindQueue(queueName:string, exchangeName:string, routingKey:string) : void
+    + GetOrCreateExchange(exchangeName:string, exchangeType:string) : string
+    + DeclareQueue(queueName:string, durable:bool, autoDelete:bool) : string
+    + PublishMessage(exchangeName:string, routingKey:string, message:T) : void
+}
+@enduml

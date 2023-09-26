@@ -1,0 +1,7 @@
+@startuml
+class RapidMqFactory {
+    + RapidMqFactory(connectionManager:IConnectionManager, logger:Logger<IRapidMq>)
+    + <<async>> CreateAsync(connectionUri:Uri, connectionManagerConfig:ConnectionManagerConfig, cancellationToken:CancellationToken, jsonSerializerOptions:JsonSerializerOptions?) : Task<RapidMq>
+}
+IRapidMqFactory <|-- RapidMqFactory
+@enduml

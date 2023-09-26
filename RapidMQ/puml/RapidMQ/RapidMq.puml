@@ -1,0 +1,13 @@
+@startuml
+class RapidMq {
+    + RapidMq(connection:IConnection, logger:ILogger<IRapidMq>, connectionManager:IConnectionManager, connectionManagerConfig:ConnectionManagerConfig, connectionUri:Uri, jsonSerializerOptions:JsonSerializerOptions?, cancellationToken:CancellationToken)
+    + CreateRapidChannel(channelConfig:ChannelConfig) : RapidChannel
+    + GetOrCreateQueueBinding(queue:QueueModel, exchangeName:string, routingKey:string) : QueueBinding
+    + GetOrCreateQueueBinding(queue:string, exchangeName:string, routingKey:string) : QueueBinding
+    + UnbindQueue(queueName:string, exchangeName:string, routingKey:string) : void
+    + GetOrCreateExchange(exchangeName:string, exchangeType:string) : string
+    + DeclareQueue(queueName:string, durable:bool, autoDelete:bool) : string
+    + PublishMessage(exchangeName:string, routingKey:string, message:T) : void
+}
+IRapidMq <|-- RapidMq
+@enduml

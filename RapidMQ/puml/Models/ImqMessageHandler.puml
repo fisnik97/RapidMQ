@@ -1,0 +1,5 @@
+@startuml
+interface "IMqMessageHandler`1"<T> {
+    + Handle(context:MessageContext<T>) : Task
+}
+@enduml

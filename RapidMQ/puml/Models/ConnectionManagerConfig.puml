@@ -1,0 +1,13 @@
+@startuml
+class ConnectionManagerConfig {
+    + MaxMillisecondsDelay : int <<get>> <<init>>
+    + InitialMillisecondsRetry : int <<get>> <<init>>
+    + OnConnectionShutdownEventHandler : Func<ShutdownEventArgs, Task>? <<get>> <<init>>
+    + OnReconnectRetryEventHandler : Func<Exception, int, TimeSpan, Task>? <<get>> <<init>>
+    + OnConnectionRecovery : Func<Task>? <<get>> <<init>>
+    + ConnectionManagerConfig(maxMillisecondsDelay:int, initialMillisecondsRetry:int)
+    + ConnectionManagerConfig(maxMillisecondsDelay:int, initialMillisecondsRetry:int, onConnectionShutdownEventHandler:Func<ShutdownEventArgs, Task>?)
+    + ConnectionManagerConfig(maxMillisecondsDelay:int, initialMillisecondsRetry:int, onConnectionShutdownEventHandler:Func<ShutdownEventArgs, Task>?, onReconnectRetryEventHandler:Func<Exception, int, TimeSpan, Task>?)
+    + ConnectionManagerConfig(maxMillisecondsDelay:int, initialMillisecondsRetry:int, onConnectionShutdownEventHandler:Func<ShutdownEventArgs, Task>?, onReconnectRetryEventHandler:Func<Exception, int, TimeSpan, Task>?, onConnectionRecovery:Func<Task>?)
+}
+@enduml

@@ -1,0 +1,7 @@
+@startuml
+class MqMessage {
+}
+IMqMessage <|-- MqMessage
+MqMessage o-> "Id" Guid
+MqMessage o-> "CreatedDate" DateTime
+@enduml
