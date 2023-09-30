@@ -28,7 +28,7 @@ public class RapidMqHostedService : IHostedService
 
 
         var alertProcessingChannel =
-            rapidMq.CreateRapidChannel(new ChannelConfig("alertProcessingChannel", 300, 100000, true));
+            rapidMq.CreateRapidChannel(new ChannelConfig("alertProcessingChannel", 300, true));
         var notificationChannel = rapidMq.CreateRapidChannel(new ChannelConfig("notificationChannel", 1));
 
         using var scope = _serviceProvider.CreateScope();

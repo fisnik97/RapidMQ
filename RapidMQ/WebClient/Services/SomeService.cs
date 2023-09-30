@@ -9,7 +9,7 @@ public class SomeService : ISomeService
         for (var i = 0; i < nrOfTasks; i++)
         {
             //Console.WriteLine($"Processing task number: {i}");
-            await Task.Delay(100);
+            await Task.Delay(10);
         }
     }
 }

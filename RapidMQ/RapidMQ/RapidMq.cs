@@ -2,7 +2,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
 using RapidMQ.Contracts;
 using RapidMQ.Internals;
 using RapidMQ.Models;
@@ -15,7 +14,7 @@ public class RapidMq : IRapidMq
     private readonly HashSet<QueueBinding> _queueBindings = new();
     private readonly IModel _setupChannel;
     private readonly Dictionary<string, RapidChannel> _rapidChannelConfigs;
-    
+
     private readonly ILogger<IRapidMq> _logger;
     private readonly JsonSerializerOptions _jsonSerializerOptions;
 
@@ -28,8 +27,8 @@ public class RapidMq : IRapidMq
         _jsonSerializerOptions = jsonSerializerOptions;
         _setupChannel = _connection.CreateModel();
         _rapidChannelConfigs = new Dictionary<string, RapidChannel>();
-        
-        _connection.ConnectionShutdown += async (sender, args) =>
+
+        _connection.ConnectionShutdown += async (_, args) =>
         {
             if (args.Initiator == ShutdownInitiator.Application)
             {
@@ -57,14 +56,11 @@ public class RapidMq : IRapidMq
     {
         if (_rapidChannelConfigs.ContainsKey(channelConfig.ChannelName))
             throw new InvalidOperationException("A channel with the same id already exists!");
-        
-        
-        
-        var channel = _connection.CreateModel();
-        channel.BasicQos(0, channelConfig.PrefetchCount, channelConfig.IsGlobal);
 
-        var consumer = new EventingBasicConsumer(channel);
-        var rapidChannel = new RapidChannel(channelConfig.ChannelName, channel, consumer, _logger, _jsonSerializerOptions);
+        var rapidChannel =
+            new RapidChannel(channelConfig.ChannelName, channelConfig, _connection, _logger, _jsonSerializerOptions);
+
+        _rapidChannelConfigs.Add(channelConfig.ChannelName, rapidChannel);
         return rapidChannel;
     }
 

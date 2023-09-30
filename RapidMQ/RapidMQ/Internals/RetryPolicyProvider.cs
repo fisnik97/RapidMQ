@@ -7,7 +7,7 @@ namespace RapidMQ.Internals;
 public static class RetryPolicyProvider
 {
     public static AsyncRetryPolicy GetConnectionRecoveryRetryPolicy(RetryConfiguration retryConfiguration,
-        Action<string, int, TimeSpan>? onRetry = null, CancellationToken cancellationToken = default)
+        Action<string, int, TimeSpan>  onRetry = null, CancellationToken cancellationToken = default)
     {
         return Policy.Handle<BrokerUnreachableException>()
             .Or<AlreadyClosedException>()

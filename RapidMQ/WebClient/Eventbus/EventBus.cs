@@ -1,6 +1,5 @@
 ﻿using System.Reflection;
 using RapidMQ.Contracts;
-using RapidMQ.Models;
 
 namespace WebClient.Eventbus;
 
