@@ -15,5 +15,5 @@ public interface IRapidMqFactory
     /// <returns></returns>
     Task<RapidMq> CreateAsync(Uri connectionUri, ConnectionManagerConfig connectionManagerConfig,
         CancellationToken cancellationToken = default,
-        JsonSerializerOptions? jsonSerializerOptions = null);
-} 
+        JsonSerializerOptions jsonSerializerOptions = null);
+}

@@ -27,7 +27,8 @@ public class RapidMqHostedService : IHostedService
             iotExchange, "notification.received");
 
 
-        var alertProcessingChannel = rapidMq.CreateRapidChannel(new ChannelConfig("alertProcessingChannel", 300));
+        var alertProcessingChannel =
+            rapidMq.CreateRapidChannel(new ChannelConfig("alertProcessingChannel", 300, true));
         var notificationChannel = rapidMq.CreateRapidChannel(new ChannelConfig("notificationChannel", 1));
 
         using var scope = _serviceProvider.CreateScope();

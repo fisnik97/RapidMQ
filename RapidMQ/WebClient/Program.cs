@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging.Abstractions;
 using RapidMQ;
 using RapidMQ.Contracts;
 using RapidMQ.Models;
@@ -17,7 +16,13 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddLogging();
+builder.Services.AddLogging(x =>
+{
+    x.AddConsole()
+        .AddDebug()
+        .AddConfiguration(builder.Configuration.GetSection("Logging"));
+});
+
 // some random service
 builder.Services.AddTransient<ISomeService, SomeService>();
 
@@ -32,8 +37,8 @@ builder.Services.AddSingleton<IRapidMq>(sp =>
     var connectionManager = sp.GetRequiredService<IConnectionManager>();
     var cancellationTokenSource = sp.GetRequiredService<CancellationTokenSource>();
 
-    // ideally create a logger implementation for IRapidMq
-    var logger = new Logger<IRapidMq>(new NullLoggerFactory());
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = loggerFactory.CreateLogger<IRapidMq>();
 
     var configuration = sp.GetRequiredService<IConfiguration>();
     var eventBusConnectionString = configuration.GetValue<string>("EventBusConnectionString");
@@ -46,9 +51,23 @@ builder.Services.AddSingleton<IRapidMq>(sp =>
     const int initialMillisecondsRetry = 2000;
 
     var connectionManagerConfig =
-        new ConnectionManagerConfig(
-            maxMillisecondsRetry,
-            initialMillisecondsRetry);
+            new ConnectionManagerConfig(
+                maxMillisecondsRetry,
+                initialMillisecondsRetry)
+            {
+                OnConnection = () =>
+                {
+                    logger.LogInformation("Client has been connected to the broker!");
+                    return Task.CompletedTask;
+                },
+                OnConnectionShutdownEventHandler = (args) =>
+                {
+                    logger.LogError("Client has been disconnected from the broker! Reason: {0}, Cause: {1} ",
+                        args.ReplyText, args.Cause);
+                    return Task.CompletedTask;
+                }
+            }
+        ;
 
     var rapidMqFactory = new RapidMqFactory(connectionManager, logger);
 

@@ -1,7 +1,6 @@
 ﻿using System.Globalization;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
-using RabbitMQ.Client.Exceptions;
 using RapidMQ.Contracts;
 using RapidMQ.Internals;
 using RapidMQ.Models;
@@ -12,27 +11,23 @@ public class ConnectionManager : IConnectionManager
 {
     private readonly ILogger<ConnectionManager> _logger;
     private CancellationToken _cancellationToken;
-    private bool _isReconnectionAttempted;
 
     public ConnectionManager(ILogger<ConnectionManager> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    private Func<ShutdownEventArgs, Task>? OnConnectionShutdownEventHandler { get; set; }
-    private Func<Exception, int, TimeSpan, Task>? OnReconnectRetryEventHandler { get; set; }
-    private Func<Task>? OnConnectionRecovery { get; set; }
+    private Func<ShutdownEventArgs, Task> OnConnectionShutdownEventHandler { get; set; }
+    private Func<Task> OnConnection { get; set; }
 
-    protected virtual IConnection CreateConnectionInstance(Uri uri)
-    {
-        return new ConnectionFactory
-        {
-            Uri = uri,
-            RequestedHeartbeat = TimeSpan.FromSeconds(30),
-            AutomaticRecoveryEnabled = true,
-        }.CreateConnection();
-    }
-
+    /// <summary>
+    /// Method to connect to the RabbitMQ broker using a capped exponential backoff retry policy.
+    /// </summary>
+    /// <param name="connectionUri"></param>
+    /// <param name="connectionManagerConfig"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentNullException"></exception>
     public virtual async Task<IConnection> ConnectAsync(Uri connectionUri,
         ConnectionManagerConfig connectionManagerConfig, CancellationToken cancellationToken = default)
     {
@@ -40,11 +35,9 @@ public class ConnectionManager : IConnectionManager
             throw new ArgumentNullException(nameof(connectionUri), "Connection URI cannot be null!");
 
         _cancellationToken = cancellationToken;
-        _isReconnectionAttempted = false;
 
-        OnReconnectRetryEventHandler = connectionManagerConfig.OnReconnectRetryEventHandler;
         OnConnectionShutdownEventHandler = connectionManagerConfig.OnConnectionShutdownEventHandler;
-        OnConnectionRecovery = connectionManagerConfig.OnConnectionRecovery;
+        OnConnection = connectionManagerConfig.OnConnection;
 
         var connection = await ConnectToBroker(connectionUri,
             connectionManagerConfig.MaxMillisecondsDelay,
@@ -70,9 +63,16 @@ public class ConnectionManager : IConnectionManager
         return connection;
     }
 
+    /// <summary>
+    /// Connects to the RabbitMQ broker using a capped exponential backoff retry policy.
+    /// </summary>
+    /// <param name="uri"></param>
+    /// <param name="maxMillisecondsDelay"></param>
+    /// <param name="initialMillisecondsRetry"></param>
+    /// <returns></returns>
     private async Task<IConnection> ConnectToBroker(Uri uri, int maxMillisecondsDelay, int initialMillisecondsRetry)
     {
-        var policy = PolicyProvider.GetCappedForeverRetryPolicy<BrokerUnreachableException>(
+        var policy = RetryPolicyProvider.GetConnectionRecoveryRetryPolicy(
             new RetryConfiguration(maxMillisecondsDelay, initialMillisecondsRetry),
             onRetry: OnReconnectRetry,
             cancellationToken: _cancellationToken);
@@ -80,43 +80,36 @@ public class ConnectionManager : IConnectionManager
         var connection = await policy.ExecuteAsync(_ =>
             Task.FromResult(CreateConnectionInstance(uri)), _cancellationToken);
 
-        if (!_isReconnectionAttempted) return connection;
+        if (OnConnection == null) return connection;
 
-        var onConnectionRecovery = OnConnectionRecovery;
-        if (onConnectionRecovery != null)
-        {
-            Task.Run(async () => await onConnectionRecovery.Invoke(), _cancellationToken)
-                .ContinueWith(t =>
-                {
-                    if (t.IsFaulted)
-                        _logger.LogError(t.Exception, "OnConnectionRecovery failed!");
+        Task.Run(async () => await OnConnection.Invoke(), _cancellationToken)
+            .ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                    _logger.LogError(t.Exception, "OnConnection");
 
-                    if (t.IsCanceled)
-                        _logger.LogWarning("OnConnectionRecovery canceled!");
-                }, _cancellationToken);
-        }
+                if (t.IsCanceled)
+                    _logger.LogWarning("OnConnection canceled!");
+            }, _cancellationToken);
 
         return connection;
     }
 
-    private void OnReconnectRetry(Exception exception, int attemptNr, TimeSpan span)
+    protected virtual IConnection CreateConnectionInstance(Uri uri)
     {
-        _isReconnectionAttempted = true;
-        var onReconnectRetryEventHandler = OnReconnectRetryEventHandler;
-        if (onReconnectRetryEventHandler != null)
+        return new ConnectionFactory
         {
-            Task.Run(async () => await onReconnectRetryEventHandler.Invoke(exception, attemptNr, span),
-                    _cancellationToken)
-                .ContinueWith(t =>
-                {
-                    if (t.IsFaulted) _logger.LogError(t.Exception, "OnReconnectRetryEventHandler failed!");
+            Uri = uri,
+            RequestedHeartbeat = TimeSpan.FromSeconds(30),
+            AutomaticRecoveryEnabled = true,
+            NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
+        }.CreateConnection();
+    }
 
-                    if (t.IsCanceled) _logger.LogWarning("OnReconnectRetryEventHandler canceled!");
-                }, _cancellationToken);
-        }
-
+    private void OnReconnectRetry(string exceptionMessage, int attemptNr, TimeSpan span)
+    {
         _logger.LogError(
             "Retrying to connect to the RabbitMQ server after: {AttemptNr} attempt(s), timespan (ms): {Span}! - Exception: {ExceptionMessage}",
-            attemptNr, span.TotalMilliseconds, exception.InnerException?.Message ?? exception.Message);
+            attemptNr, span.TotalMilliseconds.ToString(CultureInfo.InvariantCulture), exceptionMessage);
     }
 }

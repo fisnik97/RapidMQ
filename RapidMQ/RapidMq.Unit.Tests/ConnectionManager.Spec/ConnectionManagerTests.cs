@@ -1,10 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Moq;
-using RabbitMQ.Client;
-using RapidMQ.Models;
-using Xunit;
-
-namespace RapidMq.Unit.Tests.ConnectionManager.Spec;
+﻿namespace RapidMq.Unit.Tests.ConnectionManager.Spec;
 
 public class ConnectionManagerTests
 {

@@ -8,10 +8,10 @@ namespace RapidMQ;
 public class RapidMqFactory : IRapidMqFactory
 {
     private readonly IConnectionManager _connectionManager;
-    private readonly Logger<IRapidMq> _logger;
+    private readonly ILogger<IRapidMq> _logger;
 
     public RapidMqFactory(IConnectionManager connectionManager,
-        Logger<IRapidMq> logger)
+        ILogger<IRapidMq> logger)
     {
         _connectionManager = connectionManager;
         _logger = logger;
@@ -19,7 +19,7 @@ public class RapidMqFactory : IRapidMqFactory
 
     public async Task<RapidMq> CreateAsync(Uri connectionUri, ConnectionManagerConfig connectionManagerConfig,
         CancellationToken cancellationToken = default,
-        JsonSerializerOptions? jsonSerializerOptions = null)
+        JsonSerializerOptions jsonSerializerOptions = null)
     {
         var connection =
             await _connectionManager.ConnectAsync(connectionUri, connectionManagerConfig, cancellationToken);
