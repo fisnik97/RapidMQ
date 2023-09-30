@@ -1,4 +1,4 @@
-﻿namespace RapidMQ.Models;
+﻿namespace RapidMQ.Contracts;
 
 /// <summary>
 /// Base interface for all messages sent through RapidMQ

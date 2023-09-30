@@ -1,8 +1,4 @@
-﻿using System.Diagnostics;
-using RapidMQ.Internals;
-using Xunit;
-
-namespace RapidMq.Unit.Tests.PolicyProvider.Spec;
+﻿namespace RapidMq.Unit.Tests.PolicyProvider.Spec;
 
 public class PolicyProviderTests
 {

@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
 using RapidMQ.Contracts;
 using RapidMQ.Internals;
 using RapidMQ.Models;
@@ -22,7 +23,7 @@ public class RapidChannel
     private readonly JsonSerializerOptions? _jsonSerializerOptions;
 
     internal RapidChannel(string channelName, IModel channel, EventingBasicConsumer consumer, ILogger<IRapidMq> logger,
-        JsonSerializerOptions? jsonSerializerOptions = null)
+        JsonSerializerOptions jsonSerializerOptions = null)
     {
         ChannelName = channelName;
         Channel = channel;
@@ -60,11 +61,11 @@ public class RapidChannel
             {
                 if (!_handlers.TryGetValue(routingKey, out var handlerObj))
                     throw new KeyNotFoundException(
-                        $"Routing key: {routingKey} has no handler binding associated with it!");
+                        $"Routing key: {routingKey} has no handler binding associated with it! Channel: {ChannelName}");
 
                 if (handlerObj is null)
                     throw new KeyNotFoundException(
-                        $"Routing key: {routingKey} has no handler binding associated with it!");
+                        $"Routing key: {routingKey} has no handler binding associated with it! Channel: {ChannelName}");
 
                 await ExecuteMessageHandler(args, handlerObj, routingKey);
 
@@ -72,8 +73,16 @@ public class RapidChannel
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "An error occurred while processing the message.");
-                Channel.BasicNack(args.DeliveryTag, false, false);
+                _logger.LogError(e, "Channel: {Name} - An error occurred while processing the message.", ChannelName);
+                try
+                {
+                    Channel.BasicNack(args.DeliveryTag, false, false);
+                }
+                catch (AlreadyClosedException ex)
+                {
+                    _logger.LogError(ex, "Channel: {Name} -  An error occurred while sending nack to the broker.",
+                        ChannelName);
+                }
             }
         };
     }
@@ -86,7 +95,7 @@ public class RapidChannel
 
         if (message == null)
             throw new ArgumentNullException(nameof(args),
-                $"Message is null after deserializing the body! RoutingKey:{routingKey}, Body: {body}");
+                $"Channel: {ChannelName} - Message is null after deserializing the body! RoutingKey:{routingKey}, Body: {body}");
 
         var messageContext = new MessageContext<IMqMessage>
         {

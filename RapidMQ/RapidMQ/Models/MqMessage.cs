@@ -1,4 +1,6 @@
-﻿namespace RapidMQ.Models;
+﻿using RapidMQ.Contracts;
+
+namespace RapidMQ.Models;
 
 /// <summary>
 /// Base implementation of IMqMessage interface 

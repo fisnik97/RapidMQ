@@ -1,4 +1,5 @@
-﻿using RapidMQ.Models;
+﻿using RapidMQ.Contracts;
+using RapidMQ.Models;
 
 namespace WebClient.Eventbus;
 
