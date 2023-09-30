@@ -109,7 +109,7 @@ RapidMQ is deployed in the initial version 1.0.0. Next objective is to add suppo
 
 ## Contact
 For any suggestions, questions, or feedback, please reach out: 
-- [Fisnik Maloku](mailto:ffisnikmaloku@gmail.com)
+- [Email](mailto:ffisnikmaloku@gmail.com)
 - [LinkedIn](https://www.linkedin.com/in/fisnik-maloku-992b26141/)
 
 ## Contributions
