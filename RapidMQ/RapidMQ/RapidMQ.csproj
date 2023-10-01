@@ -2,11 +2,11 @@
 
     <PropertyGroup>
         <PackageId>RapidMQ</PackageId>
-        <Version>1.0.2</Version>
+        <Version>1.1.0</Version>
         <Authors>Fisnik Maloku</Authors>
         <Company>-</Company>
         <Description>Simple RabbitMQ wrapper for .NET</Description>
-        <PackageLicenseExpression>Apache-2.0 license</PackageLicenseExpression>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <LicenseFile>LICENSE</LicenseFile>
         <PackageProjectUrl>https://github.com/fisnik97/RapidMQ</PackageProjectUrl>
         <RepositoryUrl>https://github.com/fisnik97/RapidMQ</RepositoryUrl>
