@@ -1,7 +1,7 @@
 ﻿# RapidMQ - Simplified Customizable RabbitMQ Client Library
 
-[![License:GPL-3.0](https://img.shields.io/badge/License-GPL3.0-yellow.svg)](https://opensource.org/licenses/MIT)
-[![.NET C#](https://img.shields.io/badge/.NET-C%23-blue)](https://docs.microsoft.com/en-us/dotnet/csharp/)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-yellow.svg)](https://opensource.org/licenses/Apache-2.0)
+[![.NET C#](https://img.shields.io/badge/.NET-C%23-green)](https://docs.microsoft.com/en-us/dotnet/csharp/)
 ![Nuget](https://img.shields.io/nuget/v/RapidMq?label=NuGet%20Component%20Library)
 
 ## Introduction
