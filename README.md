@@ -106,7 +106,8 @@ public class SomeService
 For more details on setting up and configuring the library, please refer to the [.NetCoreAPI Example](https://github.com/fisnik97/RapidMQ/tree/main/RapidMQ/WebClient)
 
 ## Status
-RapidMQ is deployed in the initial version 1.0.0. Next objective is to add support for more advanced features such as: introducing more ways to handle the message, especially when the message is not processed successfully!
+RapidMQ is deployed and it's ready to be used in Nuget Package Manager. 
+Next objectives are to add support for more advanced features.
 
 ## Contact
 For any suggestions, questions, or feedback, please reach out: 
