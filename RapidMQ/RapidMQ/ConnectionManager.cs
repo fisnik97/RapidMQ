@@ -82,7 +82,7 @@ public class ConnectionManager : IConnectionManager
 
         if (OnConnection == null) return connection;
 
-        Task.Run(async () => await OnConnection.Invoke(), _cancellationToken)
+        await Task.Run(async () => await OnConnection.Invoke(), _cancellationToken)
             .ContinueWith(t =>
             {
                 if (t.IsFaulted)

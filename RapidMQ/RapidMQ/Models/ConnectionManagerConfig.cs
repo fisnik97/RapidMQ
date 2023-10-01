@@ -17,12 +17,12 @@ public class ConnectionManagerConfig
     /// <summary>
     /// Custom client delegate invoked when the connection between the client and the broker is shutdown.
     /// </summary>
-    public Func<ShutdownEventArgs, Task>? OnConnectionShutdownEventHandler { get; init; }
+    public Func<ShutdownEventArgs, Task> OnConnectionShutdownEventHandler { get; init; }
 
     /// <summary>
     /// Represents a delegate that client can provide to be invoked when the connection is made with the broker.
     /// </summary>
-    public Func<Task>? OnConnection { get; init; }
+    public Func<Task> OnConnection { get; init; }
 
     public ConnectionManagerConfig(int maxMillisecondsDelay, int initialMillisecondsRetry)
     {
@@ -31,7 +31,7 @@ public class ConnectionManagerConfig
     }
 
     public ConnectionManagerConfig(int maxMillisecondsDelay, int initialMillisecondsRetry,
-        Func<ShutdownEventArgs, Task>? onConnectionShutdownEventHandler)
+        Func<ShutdownEventArgs, Task> onConnectionShutdownEventHandler)
     {
         MaxMillisecondsDelay = maxMillisecondsDelay;
         InitialMillisecondsRetry = initialMillisecondsRetry;
@@ -39,7 +39,7 @@ public class ConnectionManagerConfig
     }
 
     public ConnectionManagerConfig(int maxMillisecondsDelay, int initialMillisecondsRetry,
-        Func<ShutdownEventArgs, Task>? onConnectionShutdownEventHandler, Func<Task>? onConnection)
+        Func<ShutdownEventArgs, Task> onConnectionShutdownEventHandler, Func<Task> onConnection)
     {
         MaxMillisecondsDelay = maxMillisecondsDelay;
         InitialMillisecondsRetry = initialMillisecondsRetry;
