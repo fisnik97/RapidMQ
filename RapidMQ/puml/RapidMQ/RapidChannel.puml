@@ -1,5 +1,0 @@
-@startuml
-class RapidChannel {
-    + Listen(queueBinding:QueueBinding, handler:IMqMessageHandler<T>) : void
-}
-@enduml

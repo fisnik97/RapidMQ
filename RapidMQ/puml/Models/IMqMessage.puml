@@ -1,6 +1,0 @@
-@startuml
-interface IMqMessage {
-}
-IMqMessage --> "Id" Guid
-IMqMessage --> "CreatedDate" DateTime
-@enduml

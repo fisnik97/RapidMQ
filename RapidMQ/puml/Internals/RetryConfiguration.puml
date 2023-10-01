@@ -1,6 +1,0 @@
-@startuml
-class RetryConfiguration <<record>> {
-    + MaxMillisecondsDelay : long <<get>> <<init>>
-    + InitialMillisecondsRetry : int <<get>> <<init>>
-}
-@enduml

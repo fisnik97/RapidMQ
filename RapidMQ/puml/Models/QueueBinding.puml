@@ -1,7 +1,0 @@
-@startuml
-class QueueBinding <<record>> {
-    + QueueName : string <<get>> <<init>>
-    + RoutingKey : string <<get>> <<init>>
-    + ExchangeName : string <<get>> <<init>>
-}
-@enduml

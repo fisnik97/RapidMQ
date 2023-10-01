@@ -1,8 +1,0 @@
-@startuml
-class HandlerAndType <<record>> {
-}
-class "Func`2"<T1,T2> {
-}
-HandlerAndType --> "Handler<MessageContext<IMqMessage>,Task>" "Func`2"
-HandlerAndType --> "MessageType" Type
-@enduml
