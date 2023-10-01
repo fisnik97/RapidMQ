@@ -2,7 +2,9 @@
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-yellow.svg)](https://opensource.org/licenses/Apache-2.0)
 [![.NET C#](https://img.shields.io/badge/.NET-C%23-green)](https://docs.microsoft.com/en-us/dotnet/csharp/)
-![Nuget](https://img.shields.io/nuget/v/RapidMq?label=NuGet%20Component%20Library)
+[![Nuget](https://img.shields.io/nuget/v/RapidMq?label=NuGet%20Component%20Library)](https://www.nuget.org/packages/RapidMq/)
+[![NuGet](https://img.shields.io/nuget/dt/RapidMq?label=NuGet%20Downloads)](https://www.nuget.org/packages/RapidMq/)
+
 
 ## Introduction
 
