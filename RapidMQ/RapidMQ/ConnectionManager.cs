@@ -72,13 +72,17 @@ public class ConnectionManager : IConnectionManager
     /// <returns></returns>
     private async Task<IConnection> ConnectToBroker(Uri uri, int maxMillisecondsDelay, int initialMillisecondsRetry)
     {
-        var policy = RetryPolicyProvider.GetConnectionRecoveryRetryPolicy(
+        var policy = RetryPolicyProvider.GetCappedExponentialRetryPolicy(
             new RetryConfiguration(maxMillisecondsDelay, initialMillisecondsRetry),
             onRetry: OnReconnectRetry,
             cancellationToken: _cancellationToken);
 
+        _logger.LogInformation("Trying to connect to RabbitMQ host: {HostName}", uri.Host);
+
         var connection = await policy.ExecuteAsync(_ =>
             Task.FromResult(CreateConnectionInstance(uri)), _cancellationToken);
+
+        _logger.LogInformation("Successfully connected to RabbitMQ host: {HostName}", uri.Host);
 
         if (OnConnection == null) return connection;
 

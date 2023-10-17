@@ -6,8 +6,15 @@ namespace RapidMQ.Internals;
 
 public static class RetryPolicyProvider
 {
-    public static AsyncRetryPolicy GetConnectionRecoveryRetryPolicy(RetryConfiguration retryConfiguration,
-        Action<string, int, TimeSpan>  onRetry = null, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Capped exponential backoff retry policy for connection recovery.
+    /// </summary>
+    /// <param name="retryConfiguration"></param>
+    /// <param name="onRetry"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static AsyncRetryPolicy GetCappedExponentialRetryPolicy(RetryConfiguration retryConfiguration,
+        Action<string, int, TimeSpan> onRetry = null, CancellationToken cancellationToken = default)
     {
         return Policy.Handle<BrokerUnreachableException>()
             .Or<AlreadyClosedException>()
@@ -19,7 +26,13 @@ public static class RetryPolicyProvider
                     var exponentialDelay = TimeSpan.FromMilliseconds(retryConfiguration.InitialMillisecondsRetry *
                                                                      Math.Pow(2, sleepDuration - 1));
                     var maxDelay = TimeSpan.FromMilliseconds(retryConfiguration.MaxMillisecondsDelay);
-                    return exponentialDelay < maxDelay ? exponentialDelay : maxDelay;
+                    
+                    if (exponentialDelay > TimeSpan.MaxValue - TimeSpan.FromMinutes(1))
+                        exponentialDelay = TimeSpan.MaxValue - TimeSpan.FromMinutes(1);
+                    else if (exponentialDelay > maxDelay)
+                        exponentialDelay = maxDelay; 
+
+                    return exponentialDelay;
                 },
                 (exception, retryCount, span) =>
                 {

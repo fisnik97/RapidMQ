@@ -37,10 +37,10 @@ public class RapidMq : IRapidMq
             else
             {
                 _logger.LogCritical(
-                    "The AMQP connection is dropped by the broker. Initiator: {Initiator}, ReplyCode: {ReplyCode}, ReplyText: {ReplyText}",
-                    nameof(args.Initiator), args.ReplyCode.ToString(), args.ReplyText);
+                    "The AMQP connection is dropped by the broker host: {Host}. Initiator: {Initiator}, ReplyCode: {ReplyCode}, ReplyText: {ReplyText}",
+                    connectionUri.Host, nameof(args.Initiator), args.ReplyCode.ToString(), args.ReplyText);
 
-                _logger.LogCritical("Trying to reconnect to the broker...");
+                _logger.LogCritical("Trying to reconnect to the broker host: {Host}...", connectionUri.Host);
                 _connection =
                     await connectionManager.ConnectAsync(connectionUri, connectionManagerConfig, cancellationToken);
             }
