@@ -1,3 +1,4 @@
+using Microsoft.ApplicationInsights.Extensibility;
 using RapidMQ;
 using RapidMQ.Contracts;
 using RapidMQ.Models;
@@ -5,6 +6,7 @@ using WebClient.Eventbus;
 using WebClient.EventHandlers;
 using WebClient.Events;
 using WebClient.HostedServices;
+using WebClient.Infrastructure;
 using WebClient.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +25,7 @@ builder.Services.AddLogging(x =>
         .AddConfiguration(builder.Configuration.GetSection("Logging"));
 });
 
+
 // some random service
 builder.Services.AddTransient<ISomeService, SomeService>();
 
@@ -35,6 +38,7 @@ builder.Services.AddSingleton<IRapidMq>(sp =>
 {
     // Resolve dependencies
     var connectionManager = sp.GetRequiredService<IConnectionManager>();
+    var eventTelemetry = sp.GetRequiredService<ITelemetryService>();
     var cancellationTokenSource = sp.GetRequiredService<CancellationTokenSource>();
 
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
@@ -69,7 +73,7 @@ builder.Services.AddSingleton<IRapidMq>(sp =>
             }
         ;
 
-    var rapidMqFactory = new RapidMqFactory(connectionManager, logger);
+    var rapidMqFactory = new RapidMqFactory(connectionManager, logger, eventTelemetry);
 
     return
         rapidMqFactory
@@ -87,6 +91,12 @@ builder.Services.AddScoped<IMqMessageHandler<NotificationEvent>, NotificationEve
 builder.Services.AddSingleton<IEventBus, EventBus>();
 
 builder.Services.AddHostedService<RapidMqHostedService>();
+
+// app insights
+builder.Services.AddApplicationInsightsTelemetry();
+builder.Services.AddSingleton<ITelemetryInitializer, CustomTelemetryInitializer>();
+
+builder.Services.AddTransient<ITelemetryService, EventTelemetryService>();
 
 var app = builder.Build();
 

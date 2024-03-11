@@ -19,24 +19,28 @@ public class RapidMqHostedService : IHostedService
     {
         var rapidMq = _serviceProvider.GetRequiredService<IRapidMq>();
 
+        // define exchanges
         var iotExchange = rapidMq.GetOrCreateExchange("IoT", "topic");
         var alertReceivedQueue = rapidMq.DeclareQueue("alert.received.queue");
 
+        
+        // define channels
+        var channelForAlertProcessing =
+            rapidMq.CreateRapidChannel(new ChannelConfig("alertProcessingChannel", 300, true));
+        var channelForNotifications = rapidMq.CreateRapidChannel(new ChannelConfig("notificationChannel", 1));
+        
+        // bindings
         var alertQueueBinding = rapidMq.GetOrCreateQueueBinding(alertReceivedQueue, iotExchange, "alert.received");
         var notificationBinding = rapidMq.GetOrCreateQueueBinding(new QueueModel("notifications.queue", true, false),
             iotExchange, "notification.received");
-
-
-        var alertProcessingChannel =
-            rapidMq.CreateRapidChannel(new ChannelConfig("alertProcessingChannel", 300, true));
-        var notificationChannel = rapidMq.CreateRapidChannel(new ChannelConfig("notificationChannel", 1));
-
+        
+        // listen to queues
         using var scope = _serviceProvider.CreateScope();
         var alertHandler = scope.ServiceProvider.GetRequiredService<IMqMessageHandler<AlertReceivedEvent>>();
-        alertProcessingChannel.Listen(alertQueueBinding, alertHandler);
+        channelForAlertProcessing.Listen(alertQueueBinding, alertHandler);
 
         var notificationHandler = scope.ServiceProvider.GetRequiredService<IMqMessageHandler<NotificationEvent>>();
-        notificationChannel.Listen(notificationBinding, notificationHandler);
+        channelForNotifications.Listen(notificationBinding, notificationHandler);
 
         return Task.CompletedTask;
     }

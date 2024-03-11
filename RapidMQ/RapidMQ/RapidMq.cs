@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
@@ -16,14 +17,23 @@ public class RapidMq : IRapidMq
     private readonly Dictionary<string, RapidChannel> _rapidChannelConfigs;
 
     private readonly ILogger<IRapidMq> _logger;
+    private readonly ITelemetryService _telemetryService;
     private readonly JsonSerializerOptions _jsonSerializerOptions;
 
-    public RapidMq(IConnection connection, ILogger<IRapidMq> logger, IConnectionManager connectionManager,
-        ConnectionManagerConfig connectionManagerConfig, Uri connectionUri,
-        JsonSerializerOptions jsonSerializerOptions = null, CancellationToken cancellationToken = default)
+    public RapidMq(
+        IConnection connection,
+        ILogger<IRapidMq> logger,
+        IConnectionManager connectionManager,
+        ConnectionManagerConfig connectionManagerConfig,
+        Uri connectionUri,
+        ITelemetryService telemetryService,
+        JsonSerializerOptions jsonSerializerOptions = null,
+        CancellationToken cancellationToken = default
+    )
     {
         _connection = connection;
         _logger = logger;
+        _telemetryService = telemetryService;
         _jsonSerializerOptions = jsonSerializerOptions;
         _setupChannel = _connection.CreateModel();
         _rapidChannelConfigs = new Dictionary<string, RapidChannel>();
@@ -58,7 +68,14 @@ public class RapidMq : IRapidMq
             throw new InvalidOperationException("A channel with the same id already exists!");
 
         var rapidChannel =
-            new RapidChannel(channelConfig.ChannelName, channelConfig, _connection, _logger, _jsonSerializerOptions);
+            new RapidChannel(
+                channelConfig.ChannelName,
+                channelConfig,
+                _connection,
+                _logger,
+                _telemetryService,
+                _jsonSerializerOptions
+            );
 
         _rapidChannelConfigs.Add(channelConfig.ChannelName, rapidChannel);
         return rapidChannel;
@@ -125,6 +142,18 @@ public class RapidMq : IRapidMq
         using var channel = _connection.CreateModel();
         var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message,
             _jsonSerializerOptions ?? SerializingConfig.DefaultOptions));
+
+        var startTime = DateTimeOffset.UtcNow;
         channel.BasicPublish(exchangeName, routingKey, body: body);
+        var duration = DateTimeOffset.UtcNow - startTime;
+        var properties = new Dictionary<string, string>
+        {
+            { "ExchangeName", exchangeName },
+            { "RoutingKey", routingKey },
+            { "MessageType", typeof(T).FullName },
+            { "MessageSize", body.Length.ToString() },
+            { "PublishDuration", duration.TotalMilliseconds.ToString(CultureInfo.InvariantCulture) }
+        };
+        _telemetryService?.TrackPublish(routingKey, properties);
     }
 }

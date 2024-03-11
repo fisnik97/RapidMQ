@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
@@ -21,6 +22,8 @@ public class RapidChannel
 
     private readonly ILogger<IRapidMq> _logger;
 
+    private readonly ITelemetryService _telemetryService;
+
     private readonly JsonSerializerOptions _jsonSerializerOptions;
 
     /// <summary>
@@ -30,16 +33,23 @@ public class RapidChannel
     /// <param name="channelConfig">Configuration for the rapid-channel</param>
     /// <param name="connection">Connection instance</param>
     /// <param name="logger">Logger of RapidMq instance</param>
+    /// <param name="telemetryService"></param>
     /// <param name="jsonSerializerOptions">Custom serializer of channel</param>
     /// <exception cref="ArgumentNullException"></exception>
-    internal RapidChannel(string channelName, ChannelConfig channelConfig, IConnection connection,
+    internal RapidChannel(
+        string channelName,
+        ChannelConfig channelConfig,
+        IConnection connection,
         ILogger<IRapidMq> logger,
-        JsonSerializerOptions jsonSerializerOptions = null)
+        ITelemetryService telemetryService,
+        JsonSerializerOptions jsonSerializerOptions = null
+    )
     {
         ArgumentNullException.ThrowIfNull(connection);
         _channelName = channelName ?? throw new ArgumentNullException(nameof(channelName));
         _channelConfig = channelConfig ?? throw new ArgumentNullException(nameof(channelConfig));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _telemetryService = telemetryService;
         _jsonSerializerOptions = jsonSerializerOptions;
 
         InitChannel(connection);
@@ -71,6 +81,11 @@ public class RapidChannel
         Consumer.Received += async (_, args) =>
         {
             var routingKey = args.RoutingKey;
+            var startTime = DateTimeOffset.UtcNow;
+            var properties = new Dictionary<string, string>();
+
+            var mId = Guid.Empty;
+
             try
             {
                 if (!_handlers.TryGetValue(routingKey, out var handlerObj))
@@ -81,13 +96,34 @@ public class RapidChannel
                     throw new KeyNotFoundException(
                         $"Routing key: {routingKey} has no handler binding associated with it! Channel: {_channelName}");
 
-                await ExecuteMessageHandler(args, handlerObj, routingKey);
+                mId = await ExecuteMessageHandler(args, handlerObj, routingKey);
 
                 Channel.BasicAck(args.DeliveryTag, false);
+                
+                properties = new Dictionary<string, string>
+                {
+                    { "RoutingKey", routingKey },
+                    { "ConsumerTag", args.ConsumerTag },
+                    { "DeliveryTag", args.DeliveryTag.ToString() },
+                    { "Status", "Processed" },
+                    { "StartedProcessing", startTime.ToString() },
+                    { "EndProcessing", DateTime.UtcNow.ToString(CultureInfo.InvariantCulture) },
+                    {
+                        "ProcessingTimeMs",
+                        (DateTimeOffset.UtcNow - startTime).TotalMilliseconds.ToString(CultureInfo.InvariantCulture)
+                    }
+                };
+
+                _telemetryService.TrackEvent(mId, "MessageProcessed", properties);
             }
             catch (Exception e)
             {
                 _logger.LogError(e, "Channel: {Name} - An error occurred while processing the message.", _channelName);
+
+                properties.Add("Status", "Failed");
+                properties.Add("Error", e.Message);
+                _telemetryService.TrackEvent(mId, "MessageProcessingFailed", properties);
+
                 try
                 {
                     Channel.BasicNack(args.DeliveryTag, false, false);
@@ -101,7 +137,9 @@ public class RapidChannel
         };
     }
 
-    private async Task ExecuteMessageHandler(BasicDeliverEventArgs args, HandlerAndType handlerObj, string routingKey)
+    private async Task<Guid> ExecuteMessageHandler(BasicDeliverEventArgs args, HandlerAndType handlerObj,
+        string routingKey,
+        IDictionary<string, string> telemetryProps = null)
     {
         var body = Encoding.UTF8.GetString(args.Body.ToArray());
         var message = JsonSerializer.Deserialize(body, handlerObj.MessageType,
@@ -119,7 +157,13 @@ public class RapidChannel
             BasicProperties = args.BasicProperties
         };
 
+        telemetryProps?.Add("operationId", messageContext.Message.Id.ToString());
+        telemetryProps?.Add("message", message.ToString());
+        telemetryProps?.Add("messageType", nameof(handlerObj.MessageType));
+
         await handlerObj.Handler(messageContext);
+
+        return messageContext.Message.Id;
     }
 
     private void InitChannel(IConnection connection)
