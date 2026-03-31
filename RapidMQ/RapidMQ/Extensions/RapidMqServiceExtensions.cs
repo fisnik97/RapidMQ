@@ -41,6 +41,8 @@ public static class RapidMqServiceExtensions
 
             var factory = new RapidMqFactory(connectionManager, logger);
 
+            // Note: GetAwaiter().GetResult() is used here because DI singleton factories are synchronous.
+            // This is consistent with the existing RapidMqFactory usage pattern.
             return factory
                 .CreateAsync(connectionUri, connectionManagerConfig, cancellationTokenSource.Token,
                     jsonSerializerOptions)
@@ -69,6 +71,10 @@ public static class RapidMqServiceExtensions
         services.AddSingleton<IRapidMq>(sp =>
         {
             var options = configure(sp);
+            ArgumentNullException.ThrowIfNull(options.ConnectionUri, nameof(options.ConnectionUri));
+            ArgumentNullException.ThrowIfNull(options.ConnectionManagerConfig,
+                nameof(options.ConnectionManagerConfig));
+
             var connectionManager = sp.GetRequiredService<IConnectionManager>();
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
             var logger = loggerFactory.CreateLogger<IRapidMq>();
@@ -77,6 +83,8 @@ public static class RapidMqServiceExtensions
 
             var factory = new RapidMqFactory(connectionManager, logger);
 
+            // Note: GetAwaiter().GetResult() is used here because DI singleton factories are synchronous.
+            // This is consistent with the existing RapidMqFactory usage pattern.
             return factory
                 .CreateAsync(options.ConnectionUri, options.ConnectionManagerConfig,
                     cancellationTokenSource.Token, options.JsonSerializerOptions)

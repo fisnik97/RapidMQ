@@ -117,11 +117,11 @@ alertProcessingChannel.Listen(alertQueueBinding, handler);
 Best for simple handlers that can be expressed in a few lines, without needing a dedicated class:
 
 ```csharp
-notificationChannel.Listen<NotificationEvent>(notificationBinding, async context =>
+notificationChannel.Listen<NotificationEvent>(notificationBinding, context =>
 {
     var notification = context.Message;
     Console.WriteLine($"Notification received: {notification.NotificationId}");
-    await Task.CompletedTask;
+    return Task.CompletedTask;
 });
 ```
 

@@ -39,11 +39,11 @@ public class RapidMqHostedService : IHostedService
         // Use this for simple handlers that don't need DI or can be expressed in a few lines.
         var notificationChannel = rapidMq.CreateRapidChannel(new ChannelConfig("notificationChannel", 1));
 
-        notificationChannel.Listen<NotificationEvent>(notificationBinding, async context =>
+        notificationChannel.Listen<NotificationEvent>(notificationBinding, context =>
         {
             var notification = context.Message;
             Console.WriteLine($"Notification received: {notification.NotificationId} via routing key: {context.RoutingKey}");
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         });
 
         return Task.CompletedTask;
