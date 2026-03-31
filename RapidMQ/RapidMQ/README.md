@@ -21,87 +21,95 @@ This way, developers can easily manage their queues and their interactions with 
 - A design focusing on delivering messages effectively and consistently
 - Message handlers contain more context about the message, not only the message body
 - Support dependency injection for message handlers and other components
+- **Flexible message handling**: use either handler classes (`IMqMessageHandler<T>`) or inline lambda callbacks
+- **Simplified DI registration** via `AddRapidMq()` extension method
 
 ## Getting Started
 ```shell 
 dotnet add package RapidMq
 ```
 
-### A simple view on using the library to setup a channel
-```csharp 
-IConnectionManager connectionManager = new ConnectionManager(logger);
+### Registering RapidMQ with Dependency Injection
 
-var factory = new RapidMqConnectionFactory(connectionManager, logger);
+The `AddRapidMq()` extension method handles all the boilerplate of setting up the connection manager, factory, and connection:
 
-var rapidMq = factory.CreateAsync(new Uri("amqp://localhost"), new ConnectionManagerSettings(...));
+```csharp
+using RapidMQ.Extensions;
+using RapidMQ.Models;
 
-rapidMq.GetOrCreateExchange("IoT", "topic");
-var alertReceivedQueue = rapidMq.DeclareQueue("alert.received.queue");
+builder.Services.AddRapidMq(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var connectionString = configuration.GetValue<string>("EventBusConnectionString");
 
-var alertQueueBinding = rapidMq.GetOrCreateQueueBinding(alertReceivedQueue, iotExchange, "alert.received");
-
-// setting up the channels
-var alertProcessingChannel = rapidMq.CreateRapidChannel(new ChannelConfig("alertProcessingChannel", 300));
-
-using var scope = _serviceProvider.CreateScope();
-var alertHandler = scope.ServiceProvider.GetRequiredService<IMqMessageHandler<AlertReceivedEvent>>();
-
-// setting up the channel listeners
-alertProcessingChannel.Listen(alertQueueBinding, alertHandler);
-
+    return new RapidMqOptions
+    {
+        ConnectionUri = new Uri(connectionString),
+        ConnectionManagerConfig = new ConnectionManagerConfig(
+            maxMillisecondsDelay: 30000,
+            initialMillisecondsRetry: 2000)
+    };
+});
 ```
 
-### A simple view on creating a message handler
+### Setting up Channels and Bindings
+
+```csharp 
+var rapidMq = serviceProvider.GetRequiredService<IRapidMq>();
+
+var iotExchange = rapidMq.GetOrCreateExchange("IoT", "topic");
+var alertQueueBinding = rapidMq.GetOrCreateQueueBinding("alert.received.queue", iotExchange, "alert.received");
+
+var alertProcessingChannel = rapidMq.CreateRapidChannel(new ChannelConfig("alertProcessingChannel", 300));
+```
+
+### Listening for Messages
+
+RapidMQ supports two approaches for handling messages:
+
+#### Approach 1: Handler Class (`IMqMessageHandler<T>`)
+
+Best for handlers with injected dependencies or complex logic:
+
 ```csharp
-
-##Defining the message format
-[MqEventRoutingKey("alert.received")]
-public class AlertReceivedEvent : MqMessage
-{
-    public string Name { get; set; }
-    public int AlertSeverity { get; set; }
-}
-
-// Defining the message handler
 public class AlertReceivedEventHandler : IMqMessageHandler<AlertReceivedEvent>
 {
+    private readonly ISomeService _someService;
+
+    public AlertReceivedEventHandler(ISomeService someService)
+    {
+        _someService = someService;
+    }
+
     public async Task Handle(MessageContext<AlertReceivedEvent> context)
     {
-        Console.WriteLine($"Processing event with payload: {context.Message}");
-
+        Console.WriteLine($"Processing alert: {context.Message.Name}");
         await _someService.DoSomethingAsync();
-
-        Console.WriteLine(
-            $"Processing event with payload: {context.Message} and routingKey: {context.RoutingKey} completed");
     }
 }
 
+// Register and listen
+var handler = scope.ServiceProvider.GetRequiredService<IMqMessageHandler<AlertReceivedEvent>>();
+alertProcessingChannel.Listen(alertQueueBinding, handler);
 ```
 
-## A simple view on using the library to publish a message
+#### Approach 2: Inline Lambda Callback
+
+Best for simple handlers that can be expressed in a few lines:
+
 ```csharp
-
-public class SomeService 
+notificationChannel.Listen<NotificationEvent>(notificationBinding, async context =>
 {
-    private readonly IRapidMq _rapidMq;
-    
-    public SomeService(IRapidMq rapidMq)
-    {
-        _rapidMq = rapidMq;
-    }
-    
-    public void PublishAlertReceivedEventAsync()
-    {
-        var @alertReceivedEvent = new AlertReceivedEvent
-        {
-            Name = "Alert 1",
-            AlertSeverity = 1
-        };
+    var notification = context.Message;
+    Console.WriteLine($"Notification received: {notification.NotificationId}");
+    await Task.CompletedTask;
+});
+```
 
-        _rapidMq.PublishMessage(exchangeName, routingKey, @alertReceivedEvent);
-    }
-}
+### Publishing Messages
 
+```csharp
+_rapidMq.PublishMessage("IoT", "alert.received", alertReceivedEvent);
 ```
 
 For more details on setting up and configuring the library, please refer to the [.NetCoreAPI Example](https://github.com/fisnik97/RapidMQ/tree/main/RapidMQ/WebClient)

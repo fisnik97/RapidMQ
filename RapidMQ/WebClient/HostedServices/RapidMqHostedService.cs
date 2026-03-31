@@ -19,24 +19,32 @@ public class RapidMqHostedService : IHostedService
     {
         var rapidMq = _serviceProvider.GetRequiredService<IRapidMq>();
 
+        // Declare the exchange and queue bindings
         var iotExchange = rapidMq.GetOrCreateExchange("IoT", "topic");
-        var alertReceivedQueue = rapidMq.DeclareQueue("alert.received.queue");
 
-        var alertQueueBinding = rapidMq.GetOrCreateQueueBinding(alertReceivedQueue, iotExchange, "alert.received");
-        var notificationBinding = rapidMq.GetOrCreateQueueBinding(new QueueModel("notifications.queue", true, false),
-            iotExchange, "notification.received");
+        var alertQueueBinding = rapidMq.GetOrCreateQueueBinding("alert.received.queue", iotExchange, "alert.received");
+        var notificationBinding = rapidMq.GetOrCreateQueueBinding(
+            new QueueModel("notifications.queue", true, false), iotExchange, "notification.received");
 
-
+        // --- Approach 1: Handler class (IMqMessageHandler<T>) ---
+        // Use this when your handler has dependencies (e.g. injected services) or complex logic.
         var alertProcessingChannel =
             rapidMq.CreateRapidChannel(new ChannelConfig("alertProcessingChannel", 300, true));
-        var notificationChannel = rapidMq.CreateRapidChannel(new ChannelConfig("notificationChannel", 1));
 
         using var scope = _serviceProvider.CreateScope();
         var alertHandler = scope.ServiceProvider.GetRequiredService<IMqMessageHandler<AlertReceivedEvent>>();
         alertProcessingChannel.Listen(alertQueueBinding, alertHandler);
 
-        var notificationHandler = scope.ServiceProvider.GetRequiredService<IMqMessageHandler<NotificationEvent>>();
-        notificationChannel.Listen(notificationBinding, notificationHandler);
+        // --- Approach 2: Inline lambda callback (Func<MessageContext<T>, Task>) ---
+        // Use this for simple handlers that don't need DI or can be expressed in a few lines.
+        var notificationChannel = rapidMq.CreateRapidChannel(new ChannelConfig("notificationChannel", 1));
+
+        notificationChannel.Listen<NotificationEvent>(notificationBinding, async context =>
+        {
+            var notification = context.Message;
+            Console.WriteLine($"Notification received: {notification.NotificationId} via routing key: {context.RoutingKey}");
+            await Task.CompletedTask;
+        });
 
         return Task.CompletedTask;
     }
