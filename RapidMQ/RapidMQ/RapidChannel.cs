@@ -47,11 +47,46 @@ public class RapidChannel
         DefineConsumerHandler();
     }
 
+    /// <summary>
+    /// Listens for messages on the given queue binding and routes them to the given handler.
+    /// The handler must implement <see cref="IMqMessageHandler{T}"/>.
+    /// </summary>
+    /// <param name="queueBinding">The queue binding to listen on</param>
+    /// <param name="handler">A typed message handler instance</param>
+    /// <typeparam name="T">The message type, must implement <see cref="IMqMessage"/></typeparam>
     public void Listen<T>(QueueBinding queueBinding, IMqMessageHandler<T> handler) where T : IMqMessage
     {
         var handlerAndType = new HandlerAndType
         {
             Handler = (msgContext) => handler.Handle(
+                new MessageContext<T>
+                {
+                    Message = (T)msgContext.Message,
+                    DeliveryTag = msgContext.DeliveryTag,
+                    RoutingKey = msgContext.RoutingKey,
+                    BasicProperties = msgContext.BasicProperties
+                }),
+            MessageType = typeof(T)
+        };
+
+        _handlers[queueBinding.RoutingKey] = handlerAndType;
+        Channel.BasicConsume(queueBinding.QueueName, false, Consumer);
+    }
+
+    /// <summary>
+    /// Listens for messages on the given queue binding and routes them to the given callback function.
+    /// This overload allows passing an inline lambda or delegate without needing to implement <see cref="IMqMessageHandler{T}"/>.
+    /// </summary>
+    /// <param name="queueBinding">The queue binding to listen on</param>
+    /// <param name="callback">An async callback function that receives the message context</param>
+    /// <typeparam name="T">The message type, must implement <see cref="IMqMessage"/></typeparam>
+    public void Listen<T>(QueueBinding queueBinding, Func<MessageContext<T>, Task> callback) where T : IMqMessage
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+
+        var handlerAndType = new HandlerAndType
+        {
+            Handler = (msgContext) => callback(
                 new MessageContext<T>
                 {
                     Message = (T)msgContext.Message,

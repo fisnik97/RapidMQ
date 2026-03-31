@@ -1,5 +1,5 @@
-using RapidMQ;
 using RapidMQ.Contracts;
+using RapidMQ.Extensions;
 using RapidMQ.Models;
 using WebClient.Eventbus;
 using WebClient.EventHandlers;
@@ -26,64 +26,30 @@ builder.Services.AddLogging(x =>
 // some random service
 builder.Services.AddTransient<ISomeService, SomeService>();
 
-builder.Services.AddSingleton<IConnectionManager, ConnectionManager>();
-builder.Services.AddSingleton<ILogger, Logger<IRapidMq>>();
-
 builder.Services.AddSingleton<CancellationTokenSource>();
 
-builder.Services.AddSingleton<IRapidMq>(sp =>
+// Register RapidMQ using the simplified DI extension.
+// Connection URI and retry settings are all that's needed for basic setup.
+builder.Services.AddRapidMq(sp =>
 {
-    // Resolve dependencies
-    var connectionManager = sp.GetRequiredService<IConnectionManager>();
-    var cancellationTokenSource = sp.GetRequiredService<CancellationTokenSource>();
-
-    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    var logger = loggerFactory.CreateLogger<IRapidMq>();
-
     var configuration = sp.GetRequiredService<IConfiguration>();
-    var eventBusConnectionString = configuration.GetValue<string>("EventBusConnectionString");
+    var eventBusConnectionString = configuration.GetValue<string>("EventBusConnectionString")
+                                   ?? throw new InvalidOperationException(
+                                       "Please provide 'EventBusConnectionString' in configuration.");
 
-    if (eventBusConnectionString == null)
-        throw new ArgumentNullException(nameof(configuration), "Please provide a connection for amqp!");
-
-    // These configurations can also be read from appsettings.json using a section
-    const int maxMillisecondsRetry = 30000;
-    const int initialMillisecondsRetry = 2000;
-
-    var connectionManagerConfig =
-            new ConnectionManagerConfig(
-                maxMillisecondsRetry,
-                initialMillisecondsRetry)
-            {
-                OnConnection = () =>
-                {
-                    logger.LogInformation("Client has been connected to the broker!");
-                    return Task.CompletedTask;
-                },
-                OnConnectionShutdownEventHandler = (args) =>
-                {
-                    logger.LogError("Client has been disconnected from the broker! Reason: {0}, Cause: {1} ",
-                        args.ReplyText, args.Cause);
-                    return Task.CompletedTask;
-                }
-            }
-        ;
-
-    var rapidMqFactory = new RapidMqFactory(connectionManager, logger);
-
-    return
-        rapidMqFactory
-            .CreateAsync(new Uri(eventBusConnectionString), connectionManagerConfig, cancellationTokenSource.Token)
-            .GetAwaiter()
-            .GetResult();
+    return new RapidMqOptions
+    {
+        ConnectionUri = new Uri(eventBusConnectionString),
+        ConnectionManagerConfig = new ConnectionManagerConfig(
+            maxMillisecondsDelay: 30000,
+            initialMillisecondsRetry: 2000)
+    };
 });
 
-
-// register event handlers
+// Register event handlers (used by the handler-class approach)
 builder.Services.AddScoped<IMqMessageHandler<AlertReceivedEvent>, AlertReceivedEventHandler>();
-builder.Services.AddScoped<IMqMessageHandler<NotificationEvent>, NotificationEventHandler>();
 
-// register event bus
+// Register event bus
 builder.Services.AddSingleton<IEventBus, EventBus>();
 
 builder.Services.AddHostedService<RapidMqHostedService>();
